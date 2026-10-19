@@ -94,3 +94,7 @@ QML errors show up in `journalctl --user -f`.
 
 Several parts are taken from Fokus: `ExecUtil.qml`, `NotificationManager.qml`, `Sfx.qml`,
 `ProgressCircle.qml`, `FormPathDelegate.qml`, the Makefile and the audits in `tests/`.
+
+## License
+
+GPL-3.0-or-later, see `LICENSE`. Parts are taken from Fokus, which is under the same license.
