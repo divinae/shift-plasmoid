@@ -33,6 +33,8 @@ Item {
     property real targetCm: NaN
     property string target: ""
     property real heightBeforeCm: NaN
+    // Where the whole move started, for the popup. heightBeforeCm moves on with each retry.
+    property real startCm: NaN
     property int stalls: 0
     property string lastMoveError: ""
     property bool cancelled: false
@@ -71,6 +73,7 @@ Item {
         attempt = 0;
         stalls = 0;
         heightBeforeCm = heightCm;
+        startCm = heightCm;
         runMove();
     }
 

@@ -78,8 +78,8 @@ PlasmoidItem {
             return "system-lock-screen";
         if (status === "paused" || status === "off")
             return "media-playback-pause";
-        // The arrow points where the user goes next.
-        return cycle.position === "stand" ? "arrow-down" : "arrow-up";
+        // Installed into the icon theme by `make install`; see the Makefile.
+        return cycle.position === "stand" ? "com.dv.stand-stand" : "com.dv.stand-sit";
     }
 
     // The posture now. Where to go next is the badge's job.
@@ -380,6 +380,9 @@ PlasmoidItem {
             showBackground: true
             colorCircle: root.panelRingColor
             colorBackground: root.themeTrackColor
+            // The tool reports nothing until the desk stops, so the ring says "moving"
+            // rather than how far.
+            indeterminate: desk.moving
             visible: !root.idle
         }
 
@@ -436,6 +439,7 @@ PlasmoidItem {
                 showBackground: true
                 colorCircle: root.ringColor
                 colorBackground: root.themeTrackColor
+                indeterminate: desk.moving
 
                 Kirigami.Icon {
                     anchors.centerIn: parent
@@ -606,7 +610,8 @@ PlasmoidItem {
                 Layout.fillWidth: true
                 text: !desk.moving ? root.heightText()
                     : desk.attempt > 1 ? i18n("Desk stopped short, trying again (%1 of %2)…", desk.attempt, desk.maxAttempts)
-                    : i18n("Desk moving…")
+                    : isNaN(desk.startCm) ? i18n("Desk moving…")
+                    : i18n("Moving %1 → %2 cm…", Math.round(desk.startCm), Math.round(desk.targetCm))
                 wrapMode: Text.Wrap
             }
 

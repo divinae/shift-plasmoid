@@ -5,6 +5,11 @@ ARCHIVE = stand_v$(VERSION).plasmoid
 QMLLINT ?= /usr/lib/qt6/bin/qmllint
 QMLTESTRUNNER ?= /usr/lib/qt6/bin/qmltestrunner
 
+# Plasma looks a widget's icon up by name in the icon theme and cannot point into the
+# package, so the figures are installed as themed icons too: one for the widget list, and
+# one per posture for the tooltip.
+ICON_DIR = $(or $(XDG_DATA_HOME),$(HOME)/.local/share)/icons/hicolor/scalable/apps
+
 QML_SOURCES = $(wildcard package/contents/ui/*.qml package/contents/ui/lib/*.qml)
 PACKAGE_FILES = $(shell find package -type f)
 
@@ -12,7 +17,7 @@ PACKAGE_FILES = $(shell find package -type f)
 # plasmashell, so those two categories are pure noise here.
 QMLLINT_FLAGS = --unqualified disable --missing-property disable
 
-.PHONY: check lint test audit install upgrade uninstall package clean
+.PHONY: check lint test audit install upgrade uninstall package clean icons
 
 check: lint audit test
 
@@ -29,14 +34,20 @@ audit:
 	python3 tests/config_audit.py
 	python3 tests/theme_audit.py
 
-install:
+install: icons
 	kpackagetool6 -t Plasma/Applet -i package
 
-upgrade:
+upgrade: icons
 	kpackagetool6 -t Plasma/Applet -u package
 
 uninstall:
 	kpackagetool6 -t Plasma/Applet -r $(PLUGIN_ID)
+	rm -f $(ICON_DIR)/$(PLUGIN_ID).svg $(ICON_DIR)/$(PLUGIN_ID)-sit.svg $(ICON_DIR)/$(PLUGIN_ID)-stand.svg
+
+icons:
+	install -Dm644 package/contents/icons/person-stand.svg $(ICON_DIR)/$(PLUGIN_ID).svg
+	install -Dm644 package/contents/icons/person-sit.svg $(ICON_DIR)/$(PLUGIN_ID)-sit.svg
+	install -Dm644 package/contents/icons/person-stand.svg $(ICON_DIR)/$(PLUGIN_ID)-stand.svg
 
 # A .plasmoid is just a zip of the package directory. The name tracks the
 # version in metadata.json so the two cannot drift.

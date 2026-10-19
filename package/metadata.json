@@ -8,7 +8,7 @@
         ],
         "Category": "Date and Time",
         "Description": "Sit/stand reminder that can drive a motorized desk",
-        "Icon": "go-up",
+        "Icon": "com.dv.stand",
         "Id": "com.dv.stand",
         "Name": "Stand",
         "Version": "0.1.0"

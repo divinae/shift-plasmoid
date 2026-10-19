@@ -6,7 +6,11 @@ motorized desk for you.
 - A sit/stand cycle with its own timer: 45 minutes sitting, 15 standing by default.
 - A notification when it is time to switch, with **Sit/Stand now** and **Snooze**.
 - Daily standing time against a goal, and a streak of days that met it.
+- A week of standing time as a chart in the popup.
 - Paused while the screen is locked. Away 5 minutes or more starts the cycle over.
+- **Pause** for a meeting (30 min, 1 h, 2 h or until resumed), and optional working hours
+  outside which the cycle stops.
+- Reminders wait while Do Not Disturb is on, and show once it ends.
 
 ## Install
 
@@ -16,6 +20,11 @@ make upgrade     # after changes
 ```
 
 Then add **Stand** to a panel or the desktop.
+
+Besides the widget, `make install` puts its icons in
+`~/.local/share/icons/hicolor/scalable/apps/`, because Plasma looks a widget's icon up by
+name. Installed from a `.plasmoid` file instead, the widget works but the tooltip and the
+widget list show no icon.
 
 ## Desk control
 
@@ -36,7 +45,10 @@ Then, in the widget's settings, under **Desk**:
 
 1. Turn on **Control a motorized desk**.
 2. Press **Test connection**. It runs the height command and shows what it read.
-3. Set the sitting and standing heights. Above their midpoint counts as standing.
+3. Move the desk to your sitting height and press **Use current height for sitting**, then
+   the same for standing. This sets the widget's preset and runs `idasen save sit` (or
+   `stand`), so idasen and the widget agree on the heights. Above their midpoint counts
+   as standing.
 
 Any other tool works too. The commands run with `sh`, and `{cm}`, `{mm}` and `{m}` are
 replaced with the preset height, for example `linak-controller --move-to {mm}`. The height
@@ -44,6 +56,10 @@ command may print the height in metres, centimetres or millimetres.
 
 The widget reads the height every minute, so moving the desk with its own buttons is
 noticed too and the standing time stays right.
+
+A move that stops short of the preset (Linak desks do this now and then) is run again,
+up to 8 times. Two moves in a row that do not move the desk at all end the retries:
+something may be in the way, and the desk stopping is its anti-collision at work.
 
 **Move the desk when it is time to switch** is off by default. A desk that moves on its
 own can catch a chair arm, a cable or a shelf. Turn it on only if nothing can be caught.
@@ -53,6 +69,8 @@ own can catch a chair arm, a cable or a shelf. Turn it on only if nothing can be
 - Away is the screen lock, not idle time. KDE's Wayland session answers
   `org.freedesktop.ScreenSaver.GetSessionIdleTime` with `NotSupported`. Plasma locks after
   its own idle timeout, so in practice this follows idleness too.
+- The popup cannot show the height while the desk moves. The command reports nothing
+  until it exits, and idasen holds the desk's only Bluetooth connection while moving.
 - Standing time is credited to the day it is saved on, once a minute, so at most a minute
   of a session that spans midnight lands on the wrong day.
 
