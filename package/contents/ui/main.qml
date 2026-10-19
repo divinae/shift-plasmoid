@@ -35,6 +35,11 @@ PlasmoidItem {
     // applet's config file every second.
     property real unsavedStandMs: 0
 
+    // Do Not Disturb, as the notification server reports it. Reminders wait while it is on.
+    property bool dndActive: false
+    // A reminder held back by Do Not Disturb, shown once it ends.
+    property bool pendingRemind: false
+    readonly property string dndCmd: "dbus-send --session --print-reply=literal --dest=org.freedesktop.Notifications /org/freedesktop/Notifications org.freedesktop.DBus.Properties.Get string:org.freedesktop.Notifications string:Inhibited"
     readonly property string lockCmd: "dbus-send --session --print-reply=literal --dest=org.freedesktop.ScreenSaver /ScreenSaver org.freedesktop.ScreenSaver.GetActive"
 
     readonly property string status: Cycle.status(cycle, nowMs, { offHours: offHours })
@@ -105,6 +110,8 @@ PlasmoidItem {
             return i18n("Reminders start again at %1", formatClock(workHours.startMinutes));
         if (status === "snoozed")
             return i18n("Snoozed for %1", Cycle.formatMinutes(cycle.snoozeUntil - nowMs));
+        if (cycle.dueSinceMs && dndActive)
+            return i18n("Due for %1, reminder waits for Do Not Disturb to end", Cycle.formatMinutes(nowMs - cycle.dueSinceMs));
         if (cycle.dueSinceMs)
             return i18n("Due for %1", Cycle.formatMinutes(nowMs - cycle.dueSinceMs));
         return cycle.position === "stand"
@@ -189,6 +196,10 @@ PlasmoidItem {
 
     function remind() {
         lastNotifiedMs = Date.now();
+        if (dndActive) {
+            pendingRemind = true;
+            return;
+        }
         var standing = cycle.position === "stand";
         if (plasmoid.configuration.sfx_enabled && plasmoid.configuration.sfx_filepath)
             sfx.play(plasmoid.configuration.sfx_filepath, plasmoid.configuration.sound_volume / 100);
@@ -202,8 +213,27 @@ PlasmoidItem {
     }
 
     onSwitchDueChanged: {
-        if (!switchDue)
+        if (!switchDue) {
+            pendingRemind = false;
             return;
+        }
+        actOnDue();
+    }
+
+    onDndActiveChanged: {
+        if (dndActive || !pendingRemind)
+            return;
+        pendingRemind = false;
+        if (switchDue)
+            actOnDue();
+    }
+
+    function actOnDue() {
+        // A desk moving by itself mid-presentation is worse than a notification.
+        if (dndActive) {
+            pendingRemind = true;
+            return;
+        }
         if (deskEnabled && plasmoid.configuration.auto_move_enabled) {
             goTo(Cycle.opposite(cycle.position));
             return;
@@ -271,6 +301,17 @@ PlasmoidItem {
                 if (root.deskEnabled)
                     desk.readHeight();
             }
+        })
+    }
+
+    Timer {
+        interval: 30 * 1000
+        running: true
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: executable.exec(root.dndCmd, function(cmd, exitCode, exitStatus, stdout) {
+            // No notification server, or one without the property: nothing to wait for.
+            root.dndActive = exitCode === 0 && /true/.test(stdout);
         })
     }
 
