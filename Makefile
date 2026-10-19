@@ -17,7 +17,7 @@ PACKAGE_FILES = $(shell find package -type f)
 # plasmashell, so those two categories are pure noise here.
 QMLLINT_FLAGS = --unqualified disable --missing-property disable
 
-.PHONY: check lint test audit install upgrade uninstall package clean icons
+.PHONY: check lint test audit install upgrade uninstall package clean icons release
 
 check: lint audit test
 
@@ -60,3 +60,8 @@ $(ARCHIVE): $(PACKAGE_FILES)
 
 clean:
 	rm -f *.plasmoid
+
+# Keeps the built package in releases/, which is tracked, for the release's download link.
+release: $(ARCHIVE)
+	mkdir -p releases
+	cp $(ARCHIVE) releases/

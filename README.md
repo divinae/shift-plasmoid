@@ -19,6 +19,9 @@ motorized desk for you.
 
 ## Install
 
+Download the latest package from [releases/](releases/) and run
+`kpackagetool6 -t Plasma/Applet -i stand_v1.0.0.plasmoid`, or from the source:
+
 ```sh
 make install     # first time
 make upgrade     # after changes

@@ -1,2 +1,3 @@
-*.plasmoid
+# Built packages; released ones are kept in releases/.
+/*.plasmoid
 .vscode
