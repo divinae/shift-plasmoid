@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+    <kcfgfile name="" />
+
+    <group name="General">
+        <entry name="sit_minutes" type="Int">
+            <min>1</min>
+            <max>600</max>
+            <default>45</default>
+        </entry>
+        <entry name="stand_minutes" type="Int">
+            <min>1</min>
+            <max>600</max>
+            <default>15</default>
+        </entry>
+        <entry name="daily_goal_minutes" type="Int">
+            <!-- 0 turns the goal and the streak off. -->
+            <min>0</min>
+            <max>1440</max>
+            <default>120</default>
+        </entry>
+        <entry name="snooze_minutes" type="Int">
+            <min>1</min>
+            <max>120</max>
+            <default>10</default>
+        </entry>
+
+        <entry name="notification_enabled" type="Bool">
+            <default>true</default>
+        </entry>
+        <entry name="sfx_enabled" type="Bool">
+            <default>true</default>
+        </entry>
+        <entry name="sfx_filepath" type="String">
+            <default>/usr/share/sounds/ocean/stereo/dialog-information.oga</default>
+        </entry>
+        <entry name="sound_volume" type="Int">
+            <min>0</min>
+            <max>100</max>
+            <default>80</default>
+        </entry>
+
+        <!-- Off until the user has a tool that drives their desk. Without it the widget
+             is a reminder and the buttons only record the position. -->
+        <entry name="desk_enabled" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="desk_sit_cmd" type="String">
+            <default>idasen sit</default>
+        </entry>
+        <entry name="desk_stand_cmd" type="String">
+            <default>idasen stand</default>
+        </entry>
+        <entry name="desk_height_cmd" type="String">
+            <default>idasen height</default>
+        </entry>
+        <!-- Stores the desk's current height as a named position in the tool's own
+             config, so its sit/stand commands go where the widget expects. -->
+        <entry name="desk_save_cmd" type="String">
+            <default>idasen save {position}</default>
+        </entry>
+        <entry name="sit_height_cm" type="Double">
+            <min>40</min>
+            <max>160</max>
+            <default>72</default>
+        </entry>
+        <entry name="stand_height_cm" type="Double">
+            <min>40</min>
+            <max>160</max>
+            <default>110</default>
+        </entry>
+        <entry name="desk_poll_seconds" type="Int">
+            <!-- Each read is a Bluetooth connection, so not too often. A minute is soon
+                 enough to notice the desk's own buttons for the stats. -->
+            <min>10</min>
+            <max>3600</max>
+            <default>60</default>
+        </entry>
+        <!-- Off by default: a desk that moves on its own can catch a chair arm, a cable,
+             or a cup on a shelf above it. -->
+        <entry name="auto_move_enabled" type="Bool">
+            <default>false</default>
+        </entry>
+
+        <entry name="away_on_lock_enabled" type="Bool">
+            <default>true</default>
+        </entry>
+
+        <!-- Internal: written and read back by the applet. -->
+        <entry name="cycle_state" type="String">
+            <default></default>
+        </entry>
+        <entry name="stand_history" type="String">
+            <default>{}</default>
+        </entry>
+    </group>
+</kcfg>

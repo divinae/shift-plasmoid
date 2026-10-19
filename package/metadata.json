@@ -1,0 +1,20 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "lipinski.j@pm.me",
+                "Name": "Jakub Lipiński"
+            }
+        ],
+        "Category": "Date and Time",
+        "Description": "Sit/stand reminder that can drive a motorized desk",
+        "Icon": "go-up",
+        "Id": "com.dv.stand",
+        "Name": "Stand",
+        "Version": "0.1.0"
+    },
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API": "declarativeappletscript",
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-KDE-ParentApp": ""
+}

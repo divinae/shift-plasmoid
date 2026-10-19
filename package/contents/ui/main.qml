@@ -1,0 +1,477 @@
+import "./lib"
+import "./lib/cycle.js" as Cycle
+import QtQml
+import QtQuick
+import QtQuick.Layouts
+import org.kde.kirigami as Kirigami
+import org.kde.plasma.components as PlasmaComponents
+import org.kde.plasma.plasmoid
+
+PlasmoidItem {
+    id: root
+
+    readonly property var cfg: ({
+        sitMinutes: plasmoid.configuration.sit_minutes,
+        standMinutes: plasmoid.configuration.stand_minutes
+    })
+    readonly property bool deskEnabled: plasmoid.configuration.desk_enabled
+    readonly property int goalMinutes: plasmoid.configuration.daily_goal_minutes
+
+    // The cycle and the standing history are plain objects from cycle.js. Each change
+    // assigns a new object, which is what makes the bindings below re-evaluate.
+    property var cycle: Cycle.fresh("sit")
+    property var history: ({})
+    property real nowMs: Date.now()
+    property real lastTickMs: Date.now()
+    // Standing time not yet written to config. Writing every second would rewrite the
+    // applet's config file every second.
+    property real unsavedStandMs: 0
+
+    readonly property string lockCmd: "dbus-send --session --print-reply=literal --dest=org.freedesktop.ScreenSaver /ScreenSaver org.freedesktop.ScreenSaver.GetActive"
+
+    readonly property string status: Cycle.status(cycle, nowMs)
+    readonly property bool switchDue: status === "due"
+    readonly property real remainingMs: Cycle.remainingMs(cycle, cfg)
+    readonly property real todayMinutes: Cycle.minutesOn(history, Cycle.dayKey(new Date(nowMs))) + unsavedStandMs / 60000
+    readonly property int streakDays: Cycle.streak(history, new Date(nowMs), goalMinutes)
+    property real lastNotifiedMs: 0
+    // While a switch is due and ignored, ask again this often.
+    readonly property real renotifyMs: 10 * 60 * 1000
+
+    // Theme colours are read here and only here, then handed to the views; see
+    // tests/theme_audit.py for why per-delegate reads are not allowed.
+    property bool paletteReady: false
+    readonly property color themeTextColor: paletteReady ? Kirigami.Theme.textColor : "transparent"
+    readonly property color themeDimColor: paletteReady ? Kirigami.Theme.disabledTextColor : "transparent"
+    readonly property color themeAccentColor: paletteReady ? Kirigami.Theme.highlightColor : "transparent"
+    readonly property color themeDueColor: paletteReady ? Kirigami.Theme.neutralTextColor : "transparent"
+    readonly property color themeOnDueColor: paletteReady ? Kirigami.Theme.highlightedTextColor : "transparent"
+    readonly property color themeTrackColor: Qt.alpha(themeTextColor, 0.25)
+    readonly property color ringColor: switchDue ? themeDueColor : themeAccentColor
+    // The panel is translucent, and the accent blue measured 1.18:1 against it, so the
+    // panel ring is drawn in the text colour like the other panel icons.
+    readonly property color panelRingColor: switchDue ? themeDueColor : themeTextColor
+
+    readonly property string iconName: {
+        if (status === "away")
+            return "system-lock-screen";
+        // The arrow points where the user goes next.
+        return cycle.position === "stand" ? "arrow-down" : "arrow-up";
+    }
+
+    // The posture now. Where to go next is the badge's job.
+    readonly property url postureIcon: Qt.resolvedUrl(cycle.position === "stand" ? "../icons/person-stand.svg" : "../icons/person-sit.svg")
+    readonly property string nextArrow: cycle.position === "stand" ? "arrow-down" : "arrow-up"
+    readonly property bool showNextBadge: switchDue || status === "snoozed"
+
+    function statusText() {
+        switch (status) {
+        case "away":
+            return i18n("Away");
+        case "due":
+        case "snoozed":
+            return cycle.position === "stand" ? i18n("Time to sit down") : i18n("Time to stand up");
+        case "stand":
+            return i18n("Standing");
+        default:
+            return i18n("Sitting");
+        }
+    }
+
+    function countdownText() {
+        if (status === "away")
+            return i18n("Paused while the screen is locked");
+        if (status === "snoozed")
+            return i18n("Snoozed for %1", Cycle.formatMinutes(cycle.snoozeUntil - nowMs));
+        if (cycle.dueSinceMs)
+            return i18n("Due for %1", Cycle.formatMinutes(nowMs - cycle.dueSinceMs));
+        return cycle.position === "stand"
+            ? i18n("Sit down in %1", Cycle.formatMinutes(remainingMs))
+            : i18n("Stand up in %1", Cycle.formatMinutes(remainingMs));
+    }
+
+    function todayText() {
+        var stood = Cycle.formatMinutes(todayMinutes * 60000);
+        if (goalMinutes <= 0)
+            return i18n("Stood %1 today", stood);
+        return i18n("Stood %1 of %2 today", stood, Cycle.formatMinutes(goalMinutes * 60000));
+    }
+
+    function heightText() {
+        return isNaN(desk.heightCm) ? i18n("Desk height unknown") : i18n("Desk at %1 cm", Math.round(desk.heightCm));
+    }
+
+    // The user asked to be in `position`. With a desk, the desk moves and its height,
+    // read back afterwards, moves the cycle. Without one, the click is the record.
+    function goTo(position) {
+        if (deskEnabled)
+            desk.moveTo(position);
+        else
+            setPosition(position);
+    }
+
+    function setPosition(position) {
+        if (position === cycle.position)
+            return;
+        flushStanding();
+        cycle = Cycle.moveTo(cycle, position);
+        lastNotifiedMs = 0;
+        saveCycle();
+    }
+
+    function snooze() {
+        cycle = Cycle.snooze(cycle, Date.now(), plasmoid.configuration.snooze_minutes);
+        saveCycle();
+    }
+
+    function saveCycle() {
+        plasmoid.configuration.cycle_state = Cycle.serialize(cycle, Date.now());
+    }
+
+    function flushStanding() {
+        if (unsavedStandMs <= 0)
+            return;
+        // Credited to the day it is flushed on. Flushed every minute, so at most a
+        // minute of a session spanning midnight lands on the wrong day.
+        history = Cycle.addStanding(history, Cycle.dayKey(new Date()), unsavedStandMs, 90);
+        unsavedStandMs = 0;
+        plasmoid.configuration.stand_history = JSON.stringify(history);
+    }
+
+    function tick() {
+        var now = Date.now();
+        var dt = now - lastTickMs;
+        lastTickMs = now;
+        if (cycle.position === "stand" && !cycle.awaySinceMs && dt > 0 && dt <= Cycle.MAX_TICK_MS)
+            unsavedStandMs += dt;
+        cycle = Cycle.advance(cycle, now, dt, cfg);
+        nowMs = now;
+        if (switchDue && lastNotifiedMs && now - lastNotifiedMs >= renotifyMs)
+            remind();
+    }
+
+    function remind() {
+        lastNotifiedMs = Date.now();
+        var standing = cycle.position === "stand";
+        if (plasmoid.configuration.sfx_enabled && plasmoid.configuration.sfx_filepath)
+            sfx.play(plasmoid.configuration.sfx_filepath, plasmoid.configuration.sound_volume / 100);
+        if (!plasmoid.configuration.notification_enabled)
+            return;
+        var target = standing ? "sit" : "stand";
+        notifications.notifyActions(standing ? i18n("Time to sit down.") : i18n("Time to stand up."), [
+            { label: standing ? i18n("Sit now") : i18n("Stand now"), action: function() { root.goTo(target); } },
+            { label: i18n("Snooze %1 min", plasmoid.configuration.snooze_minutes), action: root.snooze }
+        ]);
+    }
+
+    onSwitchDueChanged: {
+        if (!switchDue)
+            return;
+        if (deskEnabled && plasmoid.configuration.auto_move_enabled) {
+            goTo(Cycle.opposite(cycle.position));
+            return;
+        }
+        remind();
+    }
+
+    switchWidth: Kirigami.Units.gridUnit * 10
+    switchHeight: Kirigami.Units.gridUnit * 10
+    Plasmoid.icon: iconName
+    toolTipMainText: statusText()
+    toolTipSubText: countdownText() + "\n" + todayText()
+
+    Component.onCompleted: {
+        // A pass later, so nothing reads the theme while the shell is still attaching
+        // the representations.
+        Qt.callLater(function() {
+            root.paletteReady = true;
+        });
+        var now = Date.now();
+        cycle = Cycle.restore(plasmoid.configuration.cycle_state, now);
+        history = Cycle.parseHistory(plasmoid.configuration.stand_history);
+        nowMs = now;
+        lastTickMs = now;
+        if (deskEnabled)
+            desk.readHeight();
+    }
+
+    Timer {
+        interval: 1000
+        running: true
+        repeat: true
+        onTriggered: root.tick()
+    }
+
+    // Flushes the standing time and the cycle, so a crash or restart loses at most a minute.
+    Timer {
+        interval: 60 * 1000
+        running: true
+        repeat: true
+        onTriggered: {
+            root.flushStanding();
+            root.saveCycle();
+        }
+    }
+
+    // GetSessionIdleTime would be the better signal, but KDE's Wayland session answers it
+    // with NotSupported, so the lock is what marks the user as gone. Plasma locks after
+    // its own idle timeout, so in practice this follows idleness too.
+    Timer {
+        interval: 15 * 1000
+        running: plasmoid.configuration.away_on_lock_enabled
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: executable.exec(root.lockCmd, function(cmd, exitCode, exitStatus, stdout) {
+            if (exitCode !== 0)
+                return;
+            var locked = /true/.test(stdout);
+            if (locked && !root.cycle.awaySinceMs) {
+                root.flushStanding();
+                root.cycle = Cycle.leave(root.cycle, Date.now());
+            } else if (!locked && root.cycle.awaySinceMs) {
+                root.cycle = Cycle.returnAt(root.cycle, Date.now());
+                root.lastNotifiedMs = 0;
+                if (root.deskEnabled)
+                    desk.readHeight();
+            }
+        })
+    }
+
+    onCycleChanged: {
+        // Turning the lock check off mid-absence must not leave the cycle paused for good.
+        if (cycle.awaySinceMs && !plasmoid.configuration.away_on_lock_enabled)
+            cycle = Cycle.returnAt(cycle, Date.now());
+    }
+
+    Timer {
+        interval: plasmoid.configuration.desk_poll_seconds * 1000
+        running: root.deskEnabled && !root.cycle.awaySinceMs
+        repeat: true
+        onTriggered: desk.readHeight()
+    }
+
+    Desk {
+        id: desk
+
+        sitCmd: plasmoid.configuration.desk_sit_cmd
+        standCmd: plasmoid.configuration.desk_stand_cmd
+        heightCmd: plasmoid.configuration.desk_height_cmd
+        sitHeightCm: plasmoid.configuration.sit_height_cm
+        standHeightCm: plasmoid.configuration.stand_height_cm
+        onHeightRead: cm => root.setPosition(Cycle.positionFromHeight(cm, sitHeightCm, standHeightCm))
+        onFailed: (what, detail) => notifications.notify(what === "move"
+            ? i18n("Could not move the desk: %1", detail)
+            : i18n("Could not read the desk height: %1", detail))
+    }
+
+    ExecUtil {
+        id: executable
+    }
+
+    Sfx {
+        id: sfx
+    }
+
+    NotificationManager {
+        id: notifications
+    }
+
+    compactRepresentation: MouseArea {
+        id: compact
+
+        // Even, so the ring's centre lands on a pixel boundary and both sides are as sharp.
+        readonly property real size: Math.floor(Math.min(width, height) / 2) * 2
+
+        clip: true
+        hoverEnabled: true
+        onClicked: root.expanded = !root.expanded
+
+        ProgressCircle {
+            anchors.centerIn: parent
+            size: compact.size
+            // Whole pixels, so the ring stays sharp at panel sizes (~22px gives 2px).
+            lineWidth: Math.max(2, Math.round(size / 10))
+            arcBegin: 0
+            arcEnd: 360 * Cycle.progress(root.cycle, root.cfg)
+            showBackground: true
+            colorCircle: root.panelRingColor
+            colorBackground: root.themeTrackColor
+            visible: root.status !== "away"
+        }
+
+        Kirigami.Icon {
+            anchors.centerIn: parent
+            // Leaves a gap inside the ring, so the figure does not touch the arc. Even, like
+            // the ring, so centring lands on whole pixels instead of blurring by half of one.
+            width: Math.round(compact.size * 0.3) * 2
+            height: width
+            source: root.postureIcon
+            isMask: true
+            color: root.themeTextColor
+            opacity: root.status === "away" ? 0.5 : 1
+            active: compact.containsMouse
+        }
+
+        // Where to go next, once it is time to.
+        Rectangle {
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.rightMargin: (compact.width - compact.size) / 2
+            anchors.bottomMargin: (compact.height - compact.size) / 2
+            width: Math.max(8, Math.round(compact.size * 0.42))
+            height: width
+            radius: width / 2
+            color: root.themeDueColor
+            visible: root.showNextBadge
+
+            Kirigami.Icon {
+                anchors.centerIn: parent
+                width: parent.width * 0.8
+                height: width
+                source: root.nextArrow
+                isMask: true
+                color: root.themeOnDueColor
+            }
+        }
+    }
+
+    fullRepresentation: ColumnLayout {
+        Layout.minimumWidth: Kirigami.Units.gridUnit * 16
+        Layout.preferredWidth: Kirigami.Units.gridUnit * 18
+        spacing: Kirigami.Units.largeSpacing
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Kirigami.Units.largeSpacing
+
+            ProgressCircle {
+                size: Kirigami.Units.gridUnit * 4
+                lineWidth: Kirigami.Units.smallSpacing * 1.5
+                arcBegin: 0
+                arcEnd: 360 * Cycle.progress(root.cycle, root.cfg)
+                showBackground: true
+                colorCircle: root.ringColor
+                colorBackground: root.themeTrackColor
+
+                Kirigami.Icon {
+                    anchors.centerIn: parent
+                    width: parent.width * 0.5
+                    height: width
+                    source: root.postureIcon
+                    isMask: true
+                    color: root.themeTextColor
+                    opacity: root.status === "away" ? 0.5 : 1
+                }
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: Kirigami.Units.smallSpacing
+
+                Kirigami.Heading {
+                    Layout.fillWidth: true
+                    level: 3
+                    text: root.statusText()
+                    wrapMode: Text.Wrap
+                }
+
+                PlasmaComponents.Label {
+                    Layout.fillWidth: true
+                    text: root.countdownText()
+                    color: root.themeDimColor
+                    wrapMode: Text.Wrap
+                }
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+
+            PlasmaComponents.Button {
+                Layout.fillWidth: true
+                icon.source: Qt.resolvedUrl("../icons/person-sit.svg")
+                icon.color: root.themeTextColor
+                text: i18n("Sit")
+                highlighted: root.cycle.position === "sit"
+                enabled: !desk.moving
+                onClicked: root.goTo("sit")
+            }
+
+            PlasmaComponents.Button {
+                Layout.fillWidth: true
+                icon.source: Qt.resolvedUrl("../icons/person-stand.svg")
+                icon.color: root.themeTextColor
+                text: i18n("Stand")
+                highlighted: root.cycle.position === "stand"
+                enabled: !desk.moving
+                onClicked: root.goTo("stand")
+            }
+        }
+
+        PlasmaComponents.Button {
+            Layout.fillWidth: true
+            visible: root.switchDue
+            icon.name: "chronometer-pause"
+            text: i18n("Snooze %1 min", plasmoid.configuration.snooze_minutes)
+            onClicked: root.snooze()
+        }
+
+        Kirigami.Heading {
+            Layout.fillWidth: true
+            Layout.topMargin: Kirigami.Units.smallSpacing
+            level: 5
+            text: i18n("Today")
+            color: root.themeDimColor
+        }
+
+        PlasmaComponents.Label {
+            Layout.fillWidth: true
+            text: root.todayText()
+            wrapMode: Text.Wrap
+        }
+
+        PlasmaComponents.ProgressBar {
+            Layout.fillWidth: true
+            visible: root.goalMinutes > 0
+            from: 0
+            to: root.goalMinutes
+            value: Math.min(root.todayMinutes, root.goalMinutes)
+        }
+
+        PlasmaComponents.Label {
+            Layout.fillWidth: true
+            visible: root.goalMinutes > 0
+            text: i18np("Goal met %1 day in a row", "Goal met %1 days in a row", root.streakDays)
+            color: root.themeDimColor
+        }
+
+        Kirigami.Heading {
+            Layout.fillWidth: true
+            Layout.topMargin: Kirigami.Units.smallSpacing
+            visible: root.deskEnabled
+            level: 5
+            text: i18n("Desk")
+            color: root.themeDimColor
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            visible: root.deskEnabled
+
+            PlasmaComponents.Label {
+                Layout.fillWidth: true
+                text: !desk.moving ? root.heightText()
+                    : desk.attempt > 1 ? i18n("Desk stopped short, trying again (%1 of %2)…", desk.attempt, desk.maxAttempts)
+                    : i18n("Desk moving…")
+                wrapMode: Text.Wrap
+            }
+
+            PlasmaComponents.Button {
+                visible: desk.moving && desk.attempt > 1
+                icon.name: "process-stop"
+                text: i18n("Stop retrying")
+                onClicked: desk.cancel()
+            }
+        }
+    }
+}
