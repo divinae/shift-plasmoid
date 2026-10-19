@@ -168,4 +168,71 @@ TestCase {
         compare(Cycle.formatMinutes(60 * min), "1 h");
         compare(Cycle.formatMinutes(95 * min), "1 h 35 min");
     }
+
+    function test_pauseStopsTheCount() {
+        var s = run(Cycle.fresh("sit"), 0, 10 * min);
+        s = Cycle.pause(s, 10 * min, 30);
+        compare(Cycle.status(s, 11 * min), "paused");
+        s = run(s, 10 * min, 20 * min);
+        compare(s.elapsedMs, 10 * min);
+        // Expires on its own.
+        compare(Cycle.status(s, 40 * min), "sit");
+        s = run(s, 40 * min, 5 * min);
+        compare(s.elapsedMs, 15 * min);
+    }
+
+    function test_pauseUntilResumed() {
+        var s = Cycle.pause(Cycle.fresh("sit"), 0, 0);
+        compare(Cycle.status(s, 1000 * min), "paused");
+        s = Cycle.resume(s);
+        compare(Cycle.status(s, 1000 * min), "sit");
+    }
+
+    function test_pauseSurvivesMoveAndRestore() {
+        var s = Cycle.pause(Cycle.fresh("sit"), 0, 0);
+        s = Cycle.moveTo(s, "stand");
+        compare(Cycle.status(s, min), "paused");
+        // Restored even when the rest of the saved state is too old to trust.
+        var r = Cycle.restore(Cycle.serialize(s, 0), 60 * min);
+        compare(Cycle.status(r, 60 * min), "paused");
+        var timed = Cycle.pause(Cycle.fresh("sit"), 0, 30);
+        compare(Cycle.status(Cycle.restore(Cycle.serialize(timed, 0), 60 * min), 60 * min), "sit");
+    }
+
+    function test_offHoursStopsTheCount() {
+        var s = Cycle.advance(Cycle.fresh("sit"), 1000, 1000, { sitMinutes: 45, standMinutes: 15, offHours: true });
+        compare(s.elapsedMs, 0);
+        compare(Cycle.status(s, 1000, { offHours: true }), "off");
+    }
+
+    function test_inWorkHours_data() {
+        var day = { enabled: true, startMinutes: 9 * 60, endMinutes: 17 * 60, weekdaysOnly: true };
+        var night = { enabled: true, startMinutes: 22 * 60, endMinutes: 6 * 60, weekdaysOnly: false };
+        // 2026-10-19 is a Monday, 2026-10-24 a Saturday.
+        return [
+            { tag: "disabled", cfg: { enabled: false }, date: new Date(2026, 9, 24, 3, 0), expected: true },
+            { tag: "inside", cfg: day, date: new Date(2026, 9, 19, 12, 0), expected: true },
+            { tag: "at the start", cfg: day, date: new Date(2026, 9, 19, 9, 0), expected: true },
+            { tag: "at the end", cfg: day, date: new Date(2026, 9, 19, 17, 0), expected: false },
+            { tag: "before", cfg: day, date: new Date(2026, 9, 19, 8, 59), expected: false },
+            { tag: "weekend", cfg: day, date: new Date(2026, 9, 24, 12, 0), expected: false },
+            { tag: "across midnight, late", cfg: night, date: new Date(2026, 9, 19, 23, 0), expected: true },
+            { tag: "across midnight, early", cfg: night, date: new Date(2026, 9, 20, 5, 0), expected: true },
+            { tag: "across midnight, day", cfg: night, date: new Date(2026, 9, 20, 12, 0), expected: false }
+        ];
+    }
+
+    function test_inWorkHours(data) {
+        compare(Cycle.inWorkHours(data.date, data.cfg), data.expected);
+    }
+
+    function test_lastDays() {
+        var days = Cycle.lastDays({ "2026-10-19": 30, "2026-10-13": 5, "2026-10-12": 99 }, new Date(2026, 9, 19, 10), 7);
+        compare(days.length, 7);
+        compare(days[0].key, "2026-10-13");
+        compare(days[0].minutes, 5);
+        compare(days[6].key, "2026-10-19");
+        compare(days[6].minutes, 30);
+        compare(days[3].minutes, 0);
+    }
 }

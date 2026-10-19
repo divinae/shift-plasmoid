@@ -10,9 +10,17 @@ import org.kde.plasma.plasmoid
 PlasmoidItem {
     id: root
 
+    readonly property var workHours: ({
+        enabled: plasmoid.configuration.work_hours_enabled,
+        startMinutes: plasmoid.configuration.work_start_minutes,
+        endMinutes: plasmoid.configuration.work_end_minutes,
+        weekdaysOnly: plasmoid.configuration.work_weekdays_only
+    })
+    readonly property bool offHours: !Cycle.inWorkHours(new Date(nowMs), workHours)
     readonly property var cfg: ({
         sitMinutes: plasmoid.configuration.sit_minutes,
-        standMinutes: plasmoid.configuration.stand_minutes
+        standMinutes: plasmoid.configuration.stand_minutes,
+        offHours: offHours
     })
     readonly property bool deskEnabled: plasmoid.configuration.desk_enabled
     readonly property int goalMinutes: plasmoid.configuration.daily_goal_minutes
@@ -29,7 +37,9 @@ PlasmoidItem {
 
     readonly property string lockCmd: "dbus-send --session --print-reply=literal --dest=org.freedesktop.ScreenSaver /ScreenSaver org.freedesktop.ScreenSaver.GetActive"
 
-    readonly property string status: Cycle.status(cycle, nowMs)
+    readonly property string status: Cycle.status(cycle, nowMs, { offHours: offHours })
+    // Not counting toward a switch: the panel drops the ring and dims the figure.
+    readonly property bool idle: status === "away" || status === "paused" || status === "off"
     readonly property bool switchDue: status === "due"
     readonly property real remainingMs: Cycle.remainingMs(cycle, cfg)
     readonly property real todayMinutes: Cycle.minutesOn(history, Cycle.dayKey(new Date(nowMs))) + unsavedStandMs / 60000
@@ -55,6 +65,8 @@ PlasmoidItem {
     readonly property string iconName: {
         if (status === "away")
             return "system-lock-screen";
+        if (status === "paused" || status === "off")
+            return "media-playback-pause";
         // The arrow points where the user goes next.
         return cycle.position === "stand" ? "arrow-down" : "arrow-up";
     }
@@ -68,6 +80,10 @@ PlasmoidItem {
         switch (status) {
         case "away":
             return i18n("Away");
+        case "paused":
+            return i18n("Paused");
+        case "off":
+            return i18n("Outside working hours");
         case "due":
         case "snoozed":
             return cycle.position === "stand" ? i18n("Time to sit down") : i18n("Time to stand up");
@@ -81,6 +97,12 @@ PlasmoidItem {
     function countdownText() {
         if (status === "away")
             return i18n("Paused while the screen is locked");
+        if (status === "paused")
+            return cycle.pausedUntilMs === Cycle.UNTIL_RESUMED
+                ? i18n("Until you resume")
+                : i18n("Until %1", Qt.formatTime(new Date(cycle.pausedUntilMs), Locale.ShortFormat));
+        if (status === "off")
+            return i18n("Reminders start again at %1", formatClock(workHours.startMinutes));
         if (status === "snoozed")
             return i18n("Snoozed for %1", Cycle.formatMinutes(cycle.snoozeUntil - nowMs));
         if (cycle.dueSinceMs)
@@ -88,6 +110,10 @@ PlasmoidItem {
         return cycle.position === "stand"
             ? i18n("Sit down in %1", Cycle.formatMinutes(remainingMs))
             : i18n("Stand up in %1", Cycle.formatMinutes(remainingMs));
+    }
+
+    function formatClock(minutes) {
+        return Qt.formatTime(new Date(2000, 0, 1, Math.floor(minutes / 60), minutes % 60), Locale.ShortFormat);
     }
 
     function todayText() {
@@ -121,6 +147,17 @@ PlasmoidItem {
 
     function snooze() {
         cycle = Cycle.snooze(cycle, Date.now(), plasmoid.configuration.snooze_minutes);
+        saveCycle();
+    }
+
+    // minutes <= 0 pauses until resume().
+    function pause(minutes) {
+        cycle = Cycle.pause(cycle, Date.now(), minutes);
+        saveCycle();
+    }
+
+    function resume() {
+        cycle = Cycle.resume(cycle);
         saveCycle();
     }
 
@@ -296,7 +333,7 @@ PlasmoidItem {
             showBackground: true
             colorCircle: root.panelRingColor
             colorBackground: root.themeTrackColor
-            visible: root.status !== "away"
+            visible: !root.idle
         }
 
         Kirigami.Icon {
@@ -308,7 +345,7 @@ PlasmoidItem {
             source: root.postureIcon
             isMask: true
             color: root.themeTextColor
-            opacity: root.status === "away" ? 0.5 : 1
+            opacity: root.idle ? 0.5 : 1
             active: compact.containsMouse
         }
 
@@ -360,7 +397,7 @@ PlasmoidItem {
                     source: root.postureIcon
                     isMask: true
                     color: root.themeTextColor
-                    opacity: root.status === "away" ? 0.5 : 1
+                    opacity: root.idle ? 0.5 : 1
                 }
             }
 
@@ -408,12 +445,60 @@ PlasmoidItem {
             }
         }
 
-        PlasmaComponents.Button {
+        RowLayout {
             Layout.fillWidth: true
-            visible: root.switchDue
-            icon.name: "chronometer-pause"
-            text: i18n("Snooze %1 min", plasmoid.configuration.snooze_minutes)
-            onClicked: root.snooze()
+
+            PlasmaComponents.Button {
+                Layout.fillWidth: true
+                visible: root.switchDue
+                icon.name: "chronometer-pause"
+                text: i18n("Snooze %1 min", plasmoid.configuration.snooze_minutes)
+                onClicked: root.snooze()
+            }
+
+            PlasmaComponents.Button {
+                Layout.fillWidth: true
+                visible: root.status === "paused"
+                icon.name: "media-playback-start"
+                text: i18n("Resume")
+                onClicked: root.resume()
+            }
+
+            PlasmaComponents.Button {
+                id: pauseButton
+
+                Layout.fillWidth: true
+                visible: root.status !== "paused"
+                icon.name: "media-playback-pause"
+                text: i18n("Pause…")
+                onClicked: pauseMenu.open()
+
+                PlasmaComponents.Menu {
+                    id: pauseMenu
+
+                    y: pauseButton.height
+
+                    PlasmaComponents.MenuItem {
+                        text: i18n("For 30 minutes")
+                        onTriggered: root.pause(30)
+                    }
+
+                    PlasmaComponents.MenuItem {
+                        text: i18n("For 1 hour")
+                        onTriggered: root.pause(60)
+                    }
+
+                    PlasmaComponents.MenuItem {
+                        text: i18n("For 2 hours")
+                        onTriggered: root.pause(120)
+                    }
+
+                    PlasmaComponents.MenuItem {
+                        text: i18n("Until I resume")
+                        onTriggered: root.pause(0)
+                    }
+                }
+            }
         }
 
         Kirigami.Heading {

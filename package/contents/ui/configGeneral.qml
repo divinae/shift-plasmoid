@@ -15,6 +15,19 @@ KCMUtils.SimpleKCM {
     property alias cfg_sfx_filepath: sfx_filepath.path
     property alias cfg_sound_volume: sound_volume.value
     property alias cfg_away_on_lock_enabled: away_on_lock_enabled.checked
+    property alias cfg_work_hours_enabled: work_hours_enabled.checked
+    property alias cfg_work_start_minutes: work_start_minutes.value
+    property alias cfg_work_end_minutes: work_end_minutes.value
+    property alias cfg_work_weekdays_only: work_weekdays_only.checked
+
+    function clockText(minutes) {
+        return Qt.formatTime(new Date(2000, 0, 1, Math.floor(minutes / 60), minutes % 60), Locale.ShortFormat);
+    }
+
+    function clockValue(text) {
+        var match = /(\d{1,2})\D*(\d{2})?/.exec(text);
+        return match ? Math.min(1439, parseInt(match[1], 10) * 60 + parseInt(match[2] || "0", 10)) : 0;
+    }
 
     ColumnLayout {
         spacing: 0
@@ -123,6 +136,56 @@ KCMUtils.SimpleKCM {
 
                 text: i18n("Pause while the screen is locked")
                 description: i18n("Away for 5 minutes or more starts the cycle over: you have moved.")
+            }
+        }
+
+        FormCard.FormHeader {
+            title: i18n("Working hours")
+        }
+
+        FormCard.FormCard {
+            FormCard.FormSwitchDelegate {
+                id: work_hours_enabled
+
+                text: i18n("Remind only during working hours")
+                description: i18n("Outside them the cycle stops. Standing time still counts.")
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormSpinBoxDelegate {
+                id: work_start_minutes
+
+                label: i18n("From")
+                enabled: work_hours_enabled.checked
+                from: 0
+                to: 1425
+                stepSize: 15
+                textFromValue: (value, locale) => root.clockText(value)
+                valueFromText: (text, locale) => root.clockValue(text)
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormSpinBoxDelegate {
+                id: work_end_minutes
+
+                label: i18n("To")
+                enabled: work_hours_enabled.checked
+                from: 0
+                to: 1425
+                stepSize: 15
+                textFromValue: (value, locale) => root.clockText(value)
+                valueFromText: (text, locale) => root.clockValue(text)
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormSwitchDelegate {
+                id: work_weekdays_only
+
+                text: i18n("Monday to Friday only")
+                enabled: work_hours_enabled.checked
             }
         }
     }
