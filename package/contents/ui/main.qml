@@ -459,205 +459,219 @@ PlasmoidItem {
         }
     }
 
-    fullRepresentation: ColumnLayout {
+    fullRepresentation: Item {
         Layout.minimumWidth: Kirigami.Units.gridUnit * 16
         Layout.preferredWidth: Kirigami.Units.gridUnit * 18
-        spacing: Kirigami.Units.largeSpacing
+        // As tall as the content. Given more - a resized popup, a tiling window manager
+        // around plasmawindowed - the rows stay together at the top instead of spreading.
+        Layout.minimumHeight: content.implicitHeight + 2 * content.anchors.margins
+        Layout.preferredHeight: content.implicitHeight + 2 * content.anchors.margins
 
-        RowLayout {
-            Layout.fillWidth: true
+        ColumnLayout {
+            id: content
+
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            // Room for the buttons' focus rings, which the popup edge would otherwise clip.
+            anchors.margins: Kirigami.Units.smallSpacing
             spacing: Kirigami.Units.largeSpacing
 
-            ProgressCircle {
-                size: Kirigami.Units.gridUnit * 4
-                lineWidth: Kirigami.Units.smallSpacing * 1.5
-                arcBegin: 0
-                arcEnd: 360 * Cycle.progress(root.cycle, root.cfg)
-                showBackground: true
-                colorCircle: root.ringColor
-                colorBackground: root.themeTrackColor
-                indeterminate: desk.moving
-
-                Kirigami.Icon {
-                    anchors.centerIn: parent
-                    width: parent.width * 0.5
-                    height: width
-                    source: root.postureIcon
-                    isMask: true
-                    color: root.themeTextColor
-                    opacity: root.idle ? 0.5 : 1
-                }
-            }
-
-            ColumnLayout {
+            RowLayout {
                 Layout.fillWidth: true
-                spacing: Kirigami.Units.smallSpacing
+                spacing: Kirigami.Units.largeSpacing
 
-                Kirigami.Heading {
+                ProgressCircle {
+                    size: Kirigami.Units.gridUnit * 4
+                    lineWidth: Kirigami.Units.smallSpacing * 1.5
+                    arcBegin: 0
+                    arcEnd: 360 * Cycle.progress(root.cycle, root.cfg)
+                    showBackground: true
+                    colorCircle: root.ringColor
+                    colorBackground: root.themeTrackColor
+                    indeterminate: desk.moving
+
+                    Kirigami.Icon {
+                        anchors.centerIn: parent
+                        width: parent.width * 0.5
+                        height: width
+                        source: root.postureIcon
+                        isMask: true
+                        color: root.themeTextColor
+                        opacity: root.idle ? 0.5 : 1
+                    }
+                }
+
+                ColumnLayout {
                     Layout.fillWidth: true
-                    level: 3
-                    text: root.statusText()
-                    wrapMode: Text.Wrap
-                }
+                    spacing: Kirigami.Units.smallSpacing
 
-                PlasmaComponents.Label {
+                    Kirigami.Heading {
+                        Layout.fillWidth: true
+                        level: 3
+                        text: root.statusText()
+                        wrapMode: Text.Wrap
+                    }
+
+                    PlasmaComponents.Label {
+                        Layout.fillWidth: true
+                        text: root.countdownText()
+                        color: root.themeDimColor
+                        wrapMode: Text.Wrap
+                    }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+
+                PlasmaComponents.Button {
                     Layout.fillWidth: true
-                    text: root.countdownText()
-                    color: root.themeDimColor
-                    wrapMode: Text.Wrap
+                    icon.source: Qt.resolvedUrl("../icons/person-sit.svg")
+                    icon.color: root.themeTextColor
+                    text: i18n("Sit")
+                    highlighted: root.cycle.position === "sit"
+                    enabled: !desk.moving
+                    onClicked: root.goTo("sit")
+                }
+
+                PlasmaComponents.Button {
+                    Layout.fillWidth: true
+                    icon.source: Qt.resolvedUrl("../icons/person-stand.svg")
+                    icon.color: root.themeTextColor
+                    text: i18n("Stand")
+                    highlighted: root.cycle.position === "stand"
+                    enabled: !desk.moving
+                    onClicked: root.goTo("stand")
                 }
             }
-        }
 
-        RowLayout {
-            Layout.fillWidth: true
-
-            PlasmaComponents.Button {
+            RowLayout {
                 Layout.fillWidth: true
-                icon.source: Qt.resolvedUrl("../icons/person-sit.svg")
-                icon.color: root.themeTextColor
-                text: i18n("Sit")
-                highlighted: root.cycle.position === "sit"
-                enabled: !desk.moving
-                onClicked: root.goTo("sit")
-            }
 
-            PlasmaComponents.Button {
-                Layout.fillWidth: true
-                icon.source: Qt.resolvedUrl("../icons/person-stand.svg")
-                icon.color: root.themeTextColor
-                text: i18n("Stand")
-                highlighted: root.cycle.position === "stand"
-                enabled: !desk.moving
-                onClicked: root.goTo("stand")
-            }
-        }
+                PlasmaComponents.Button {
+                    Layout.fillWidth: true
+                    visible: root.switchDue
+                    icon.name: "chronometer-pause"
+                    text: i18n("Snooze %1 min", plasmoid.configuration.snooze_minutes)
+                    onClicked: root.snooze()
+                }
 
-        RowLayout {
-            Layout.fillWidth: true
+                PlasmaComponents.Button {
+                    Layout.fillWidth: true
+                    visible: root.status === "paused"
+                    icon.name: "media-playback-start"
+                    text: i18n("Resume")
+                    onClicked: root.resume()
+                }
 
-            PlasmaComponents.Button {
-                Layout.fillWidth: true
-                visible: root.switchDue
-                icon.name: "chronometer-pause"
-                text: i18n("Snooze %1 min", plasmoid.configuration.snooze_minutes)
-                onClicked: root.snooze()
-            }
+                PlasmaComponents.Button {
+                    id: pauseButton
 
-            PlasmaComponents.Button {
-                Layout.fillWidth: true
-                visible: root.status === "paused"
-                icon.name: "media-playback-start"
-                text: i18n("Resume")
-                onClicked: root.resume()
-            }
+                    Layout.fillWidth: true
+                    visible: root.status !== "paused"
+                    icon.name: "media-playback-pause"
+                    text: i18n("Pause…")
+                    onClicked: pauseMenu.open()
 
-            PlasmaComponents.Button {
-                id: pauseButton
+                    PlasmaComponents.Menu {
+                        id: pauseMenu
 
-                Layout.fillWidth: true
-                visible: root.status !== "paused"
-                icon.name: "media-playback-pause"
-                text: i18n("Pause…")
-                onClicked: pauseMenu.open()
+                        y: pauseButton.height
 
-                PlasmaComponents.Menu {
-                    id: pauseMenu
+                        PlasmaComponents.MenuItem {
+                            text: i18n("For 30 minutes")
+                            onTriggered: root.pause(30)
+                        }
 
-                    y: pauseButton.height
+                        PlasmaComponents.MenuItem {
+                            text: i18n("For 1 hour")
+                            onTriggered: root.pause(60)
+                        }
 
-                    PlasmaComponents.MenuItem {
-                        text: i18n("For 30 minutes")
-                        onTriggered: root.pause(30)
-                    }
+                        PlasmaComponents.MenuItem {
+                            text: i18n("For 2 hours")
+                            onTriggered: root.pause(120)
+                        }
 
-                    PlasmaComponents.MenuItem {
-                        text: i18n("For 1 hour")
-                        onTriggered: root.pause(60)
-                    }
-
-                    PlasmaComponents.MenuItem {
-                        text: i18n("For 2 hours")
-                        onTriggered: root.pause(120)
-                    }
-
-                    PlasmaComponents.MenuItem {
-                        text: i18n("Until I resume")
-                        onTriggered: root.pause(0)
+                        PlasmaComponents.MenuItem {
+                            text: i18n("Until I resume")
+                            onTriggered: root.pause(0)
+                        }
                     }
                 }
             }
-        }
 
-        Kirigami.Heading {
-            Layout.fillWidth: true
-            Layout.topMargin: Kirigami.Units.smallSpacing
-            level: 5
-            text: i18n("Today")
-            color: root.themeDimColor
-        }
-
-        PlasmaComponents.Label {
-            Layout.fillWidth: true
-            text: root.todayText()
-            wrapMode: Text.Wrap
-        }
-
-        PlasmaComponents.ProgressBar {
-            Layout.fillWidth: true
-            visible: root.goalMinutes > 0
-            from: 0
-            to: root.goalMinutes
-            value: Math.min(root.todayMinutes, root.goalMinutes)
-        }
-
-        PlasmaComponents.Label {
-            Layout.fillWidth: true
-            visible: root.goalMinutes > 0
-            text: i18np("Goal met %1 day in a row", "Goal met %1 days in a row", root.streakDays)
-            color: root.themeDimColor
-        }
-
-        WeekChart {
-            Layout.fillWidth: true
-            Layout.preferredHeight: implicitHeight
-            Layout.topMargin: Kirigami.Units.smallSpacing
-            days: root.weekDays
-            todayMinutes: root.todayMinutes
-            goalMinutes: root.goalMinutes
-            barColor: root.themeAccentColor
-            trackColor: root.themeTrackColor
-            lineColor: root.themeDimColor
-            labelColor: root.themeDimColor
-        }
-
-        Kirigami.Heading {
-            Layout.fillWidth: true
-            Layout.topMargin: Kirigami.Units.smallSpacing
-            visible: root.deskEnabled
-            level: 5
-            text: i18n("Desk")
-            color: root.themeDimColor
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            visible: root.deskEnabled
+            Kirigami.Heading {
+                Layout.fillWidth: true
+                Layout.topMargin: Kirigami.Units.smallSpacing
+                level: 5
+                text: i18n("Today")
+                color: root.themeDimColor
+            }
 
             PlasmaComponents.Label {
                 Layout.fillWidth: true
-                text: !desk.moving ? root.heightText()
-                    : desk.attempt > 1 ? i18n("Desk stopped short, trying again (%1 of %2)…", desk.attempt, desk.maxAttempts)
-                    : isNaN(desk.startCm) ? i18n("Desk moving…")
-                    : i18n("Moving %1 → %2 cm…", Math.round(desk.startCm), Math.round(desk.targetCm))
+                text: root.todayText()
                 wrapMode: Text.Wrap
             }
 
-            PlasmaComponents.Button {
-                visible: desk.moving && desk.attempt > 1
-                icon.name: "process-stop"
-                text: i18n("Stop retrying")
-                onClicked: desk.cancel()
+            PlasmaComponents.ProgressBar {
+                Layout.fillWidth: true
+                visible: root.goalMinutes > 0
+                from: 0
+                to: root.goalMinutes
+                value: Math.min(root.todayMinutes, root.goalMinutes)
+            }
+
+            PlasmaComponents.Label {
+                Layout.fillWidth: true
+                visible: root.goalMinutes > 0
+                text: i18np("Goal met %1 day in a row", "Goal met %1 days in a row", root.streakDays)
+                color: root.themeDimColor
+            }
+
+            WeekChart {
+                Layout.fillWidth: true
+                Layout.preferredHeight: implicitHeight
+                Layout.topMargin: Kirigami.Units.smallSpacing
+                days: root.weekDays
+                todayMinutes: root.todayMinutes
+                goalMinutes: root.goalMinutes
+                barColor: root.themeAccentColor
+                trackColor: root.themeTrackColor
+                lineColor: root.themeDimColor
+                labelColor: root.themeDimColor
+            }
+
+            Kirigami.Heading {
+                Layout.fillWidth: true
+                Layout.topMargin: Kirigami.Units.smallSpacing
+                visible: root.deskEnabled
+                level: 5
+                text: i18n("Desk")
+                color: root.themeDimColor
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                visible: root.deskEnabled
+
+                PlasmaComponents.Label {
+                    Layout.fillWidth: true
+                    text: !desk.moving ? root.heightText()
+                        : desk.attempt > 1 ? i18n("Desk stopped short, trying again (%1 of %2)…", desk.attempt, desk.maxAttempts)
+                        : isNaN(desk.startCm) ? i18n("Desk moving…")
+                        : i18n("Moving %1 → %2 cm…", Math.round(desk.startCm), Math.round(desk.targetCm))
+                    wrapMode: Text.Wrap
+                }
+
+                PlasmaComponents.Button {
+                    visible: desk.moving && desk.attempt > 1
+                    icon.name: "process-stop"
+                    text: i18n("Stop retrying")
+                    onClicked: desk.cancel()
+                }
             }
         }
     }

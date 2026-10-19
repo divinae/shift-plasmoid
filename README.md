@@ -3,6 +3,11 @@
 A Plasma 6 widget that reminds you to switch between sitting and standing, and can move a
 motorized desk for you.
 
+| | | |
+| --- | --- | --- |
+| ![Sitting](screenshots/sitting.png) | ![Time to stand up](screenshots/due.png) | ![Standing](screenshots/standing.png) |
+| Sitting, with the week so far | A switch is due | Standing, with the desk raised |
+
 - A sit/stand cycle with its own timer: 45 minutes sitting, 15 standing by default.
 - A notification when it is time to switch, with **Sit/Stand now** and **Snooze**.
 - Daily standing time against a goal, and a streak of days that met it.
