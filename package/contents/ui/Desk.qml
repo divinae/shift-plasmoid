@@ -27,7 +27,9 @@ Item {
     // A move that stops short is run again; see DeskLogic.afterMove for when that ends.
     readonly property int maxAttempts: 8
     readonly property int maxStalls: 2
-    readonly property int retryDelayMs: 3000
+    // Short: every idasen command opens a new Bluetooth connection (about 6 s), and a retry
+    // already pays for two - the height read, then the move - before the desk moves again.
+    readonly property int retryDelayMs: 500
     // 1 for the first try of a move, more while retrying. 0 when idle.
     property int attempt: 0
     property real targetCm: NaN
@@ -52,8 +54,11 @@ Item {
     // Reads the height and reports it; `done` gets the height, or NaN on failure.
     function read(done) {
         reading = true;
+        const started = Date.now();
         exec.exec(DeskLogic.wrap(heightCmd, readTimeout), function(cmd, exitCode, exitStatus, stdout, stderr) {
             desk.reading = false;
+            if (desk.moving)
+                console.log("Stand: height read took", Date.now() - started, "ms:", ("" + stdout).trim());
             var cm = DeskLogic.parseHeightCm(stdout);
             if (exitCode !== 0 || isNaN(cm)) {
                 desk.failed("height", desk.detail(exitCode, stdout, stderr));
@@ -114,9 +119,12 @@ Item {
 
     function runMove() {
         attempt += 1;
+        const started = Date.now();
+        console.log("Stand: move to", target, "attempt", attempt);
         var template = target === "stand" ? standCmd : sitCmd;
         exec.exec(DeskLogic.wrap(DeskLogic.fillTemplate(template, targetCm, target), moveTimeout), function(cmd, exitCode, exitStatus, stdout, stderr) {
             desk.lastMoveError = exitCode !== 0 ? desk.detail(exitCode, stdout, stderr) : "";
+            console.log("Stand: move command took", Date.now() - started, "ms, exit", exitCode);
             // Not found will not get better by trying again.
             if (exitCode === 127) {
                 desk.failed("move", desk.lastMoveError);
