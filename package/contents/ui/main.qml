@@ -49,6 +49,12 @@ PlasmoidItem {
     readonly property real remainingMs: Cycle.remainingMs(cycle, cfg)
     readonly property real todayMinutes: Cycle.minutesOn(history, Cycle.dayKey(new Date(nowMs))) + unsavedStandMs / 60000
     readonly property int streakDays: Cycle.streak(history, new Date(nowMs), goalMinutes)
+    // The last week for the chart, with today's bar including the unsaved minute.
+    readonly property var weekDays: {
+        var days = Cycle.lastDays(history, new Date(nowMs), 7);
+        days[days.length - 1].minutes = todayMinutes;
+        return days;
+    }
     property real lastNotifiedMs: 0
     // While a switch is due and ignored, ask again this often.
     readonly property real renotifyMs: 10 * 60 * 1000
@@ -569,6 +575,18 @@ PlasmoidItem {
             visible: root.goalMinutes > 0
             text: i18np("Goal met %1 day in a row", "Goal met %1 days in a row", root.streakDays)
             color: root.themeDimColor
+        }
+
+        WeekChart {
+            Layout.fillWidth: true
+            Layout.preferredHeight: implicitHeight
+            Layout.topMargin: Kirigami.Units.smallSpacing
+            days: root.weekDays
+            goalMinutes: root.goalMinutes
+            barColor: root.themeAccentColor
+            trackColor: root.themeTrackColor
+            lineColor: root.themeDimColor
+            labelColor: root.themeDimColor
         }
 
         Kirigami.Heading {
