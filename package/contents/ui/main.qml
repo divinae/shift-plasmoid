@@ -47,14 +47,16 @@ PlasmoidItem {
     readonly property bool idle: status === "away" || status === "paused" || status === "off"
     readonly property bool switchDue: status === "due"
     readonly property real remainingMs: Cycle.remainingMs(cycle, cfg)
-    readonly property real todayMinutes: Cycle.minutesOn(history, Cycle.dayKey(new Date(nowMs))) + unsavedStandMs / 60000
-    readonly property int streakDays: Cycle.streak(history, new Date(nowMs), goalMinutes)
-    // The last week for the chart, with today's bar including the unsaved minute.
-    readonly property var weekDays: {
-        var days = Cycle.lastDays(history, new Date(nowMs), 7);
-        days[days.length - 1].minutes = todayMinutes;
-        return days;
-    }
+    // Changes once a day, unlike nowMs, so what depends on the day alone - the streak,
+    // the chart's days - is not recomputed every second.
+    readonly property string todayKey: Cycle.dayKey(new Date(nowMs))
+    readonly property real todayMinutes: Cycle.minutesOn(history, todayKey) + unsavedStandMs / 60000
+    readonly property int streakDays: Cycle.streak(history, Cycle.parseDayKey(todayKey), goalMinutes)
+    // The last week for the chart. Today's bar takes the live todayMinutes separately, so
+    // the chart's delegates are not rebuilt every second.
+    readonly property var weekDays: Cycle.lastDays(history, Cycle.parseDayKey(todayKey), 7)
+    // Read failures in a row; only the first is worth a notification.
+    property int deskReadFailures: 0
     property real lastNotifiedMs: 0
     // While a switch is due and ignored, ask again this often.
     readonly property real renotifyMs: 10 * 60 * 1000
@@ -192,7 +194,7 @@ PlasmoidItem {
         var now = Date.now();
         var dt = now - lastTickMs;
         lastTickMs = now;
-        if (cycle.position === "stand" && !cycle.awaySinceMs && dt > 0 && dt <= Cycle.MAX_TICK_MS)
+        if (Cycle.countsStanding(cycle, now, offHours) && dt > 0 && dt <= Cycle.MAX_TICK_MS)
             unsavedStandMs += dt;
         cycle = Cycle.advance(cycle, now, dt, cfg);
         nowMs = now;
@@ -240,11 +242,39 @@ PlasmoidItem {
             pendingRemind = true;
             return;
         }
-        if (deskEnabled && plasmoid.configuration.auto_move_enabled) {
-            goTo(Cycle.opposite(cycle.position));
+        // Counted as the reminder, so a move that fails or leaves the desk where it was
+        // is followed by the usual nagging rather than a switch due forever in silence.
+        if (deskEnabled && plasmoid.configuration.auto_move_enabled && desk.moveTo(Cycle.opposite(cycle.position))) {
+            lastNotifiedMs = Date.now();
             return;
         }
         remind();
+    }
+
+    // A desk that is off or out of range fails every poll, so a read failure notifies once
+    // per run of failures, and only as a notification would: not with notifications off,
+    // and not during Do Not Disturb. A failed move was asked for, so it always says so -
+    // and when the switch is due, it is followed by the reminder the move stood in for.
+    function reportDeskFailure(what, detail) {
+        console.warn("Stand:", what, "failed:", detail);
+        if (what === "height") {
+            deskReadFailures += 1;
+            if (deskReadFailures > 1)
+                return;
+        }
+        if (plasmoid.configuration.notification_enabled && !dndActive)
+            errorNotifications.notify(what === "move"
+                ? i18n("Could not move the desk: %1", detail)
+                : i18n("Could not read the desk height: %1", detail));
+        if (what === "move" && switchDue)
+            remind();
+    }
+
+    onOffHoursChanged: {
+        if (!offHours) {
+            cycle = Cycle.startDay(cycle);
+            saveCycle();
+        }
     }
 
     switchWidth: Kirigami.Units.gridUnit * 10
@@ -342,10 +372,11 @@ PlasmoidItem {
         heightCmd: plasmoid.configuration.desk_height_cmd
         sitHeightCm: plasmoid.configuration.sit_height_cm
         standHeightCm: plasmoid.configuration.stand_height_cm
-        onHeightRead: cm => root.setPosition(Cycle.positionFromHeight(cm, sitHeightCm, standHeightCm))
-        onFailed: (what, detail) => notifications.notify(what === "move"
-            ? i18n("Could not move the desk: %1", detail)
-            : i18n("Could not read the desk height: %1", detail))
+        onHeightRead: cm => {
+            root.deskReadFailures = 0;
+            root.setPosition(Cycle.positionFromHeight(cm, sitHeightCm, standHeightCm));
+        }
+        onFailed: (what, detail) => root.reportDeskFailure(what, detail)
     }
 
     ExecUtil {
@@ -358,6 +389,12 @@ PlasmoidItem {
 
     NotificationManager {
         id: notifications
+    }
+
+    // Its own notification, so an error does not replace a reminder and take its
+    // Stand now / Snooze buttons with it.
+    NotificationManager {
+        id: errorNotifications
     }
 
     compactRepresentation: MouseArea {
@@ -586,6 +623,7 @@ PlasmoidItem {
             Layout.preferredHeight: implicitHeight
             Layout.topMargin: Kirigami.Units.smallSpacing
             days: root.weekDays
+            todayMinutes: root.todayMinutes
             goalMinutes: root.goalMinutes
             barColor: root.themeAccentColor
             trackColor: root.themeTrackColor

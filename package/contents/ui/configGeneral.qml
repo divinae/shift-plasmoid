@@ -24,9 +24,21 @@ KCMUtils.SimpleKCM {
         return Qt.formatTime(new Date(2000, 0, 1, Math.floor(minutes / 60), minutes % 60), Locale.ShortFormat);
     }
 
+    // The inverse of clockText, including a 12-hour locale's AM/PM marker: without it,
+    // "5:00 PM" would come back as five in the morning.
     function clockValue(text) {
         var match = /(\d{1,2})\D*(\d{2})?/.exec(text);
-        return match ? Math.min(1439, parseInt(match[1], 10) * 60 + parseInt(match[2] || "0", 10)) : 0;
+        if (!match)
+            return 0;
+        var h = parseInt(match[1], 10);
+        var lower = ("" + text).toLowerCase();
+        var pm = Qt.locale().pmText.toLowerCase();
+        var am = Qt.locale().amText.toLowerCase();
+        if (pm && lower.indexOf(pm) >= 0 && h < 12)
+            h += 12;
+        else if (am && lower.indexOf(am) >= 0 && h === 12)
+            h = 0;
+        return Math.min(1439, h * 60 + parseInt(match[2] || "0", 10));
     }
 
     ColumnLayout {
@@ -148,7 +160,7 @@ KCMUtils.SimpleKCM {
                 id: work_hours_enabled
 
                 text: i18n("Remind only during working hours")
-                description: i18n("Outside them the cycle stops. Standing time still counts.")
+                description: i18n("Outside them the cycle stops and standing time is not counted. Each working day starts with a fresh cycle.")
             }
 
             FormCard.FormDelegateSeparator {}

@@ -38,6 +38,10 @@ Item {
     property int stalls: 0
     property string lastMoveError: ""
     property bool cancelled: false
+    // A move asked for while a height read was still talking to the desk. It starts once
+    // the read is done: two connections at once can fail, and the read-back after the move
+    // would otherwise reuse the command still in flight.
+    property string queuedPosition: ""
 
     function readHeight() {
         if (reading || moving || !heightCmd)
@@ -54,18 +58,35 @@ Item {
             if (exitCode !== 0 || isNaN(cm)) {
                 desk.failed("height", desk.detail(exitCode, stdout, stderr));
                 done(NaN);
-                return;
+            } else {
+                desk.heightCm = cm;
+                desk.heightRead(cm);
+                done(cm);
             }
-            desk.heightCm = cm;
-            desk.heightRead(cm);
-            done(cm);
+            if (desk.queuedPosition) {
+                const position = desk.queuedPosition;
+                desk.queuedPosition = "";
+                desk.startMove(position);
+            }
         });
     }
 
+    // Returns whether a move was started (or queued behind a read), so the caller can
+    // fall back to a reminder when the desk cannot be asked to move.
     function moveTo(position) {
         var template = position === "stand" ? standCmd : sitCmd;
         if (moving || !template)
-            return;
+            return false;
+        if (reading) {
+            moving = true;
+            queuedPosition = position;
+            return true;
+        }
+        startMove(position);
+        return true;
+    }
+
+    function startMove(position) {
         moving = true;
         cancelled = false;
         target = position;
@@ -80,6 +101,11 @@ Item {
     // Stops retrying. A move already running finishes; idasen has no stop command.
     function cancel() {
         cancelled = true;
+        if (queuedPosition) {
+            queuedPosition = "";
+            finish();
+            return;
+        }
         if (retryTimer.running) {
             retryTimer.stop();
             finish();
@@ -89,7 +115,7 @@ Item {
     function runMove() {
         attempt += 1;
         var template = target === "stand" ? standCmd : sitCmd;
-        exec.exec(DeskLogic.wrap(DeskLogic.fillTemplate(template, targetCm), moveTimeout), function(cmd, exitCode, exitStatus, stdout, stderr) {
+        exec.exec(DeskLogic.wrap(DeskLogic.fillTemplate(template, targetCm, target), moveTimeout), function(cmd, exitCode, exitStatus, stdout, stderr) {
             desk.lastMoveError = exitCode !== 0 ? desk.detail(exitCode, stdout, stderr) : "";
             // Not found will not get better by trying again.
             if (exitCode === 127) {

@@ -11,6 +11,8 @@ Item {
 
     // [{ key, date, minutes }] from Cycle.lastDays, today last.
     property var days: []
+    // Today's live minutes, which the history behind `days` lags by up to a minute.
+    property real todayMinutes: 0
     property real goalMinutes: 0
     property color barColor
     property color trackColor
@@ -19,7 +21,7 @@ Item {
 
     readonly property real barsHeight: Kirigami.Units.gridUnit * 3
     // The goal sits below the top, so a day that met it still has room to show by how much.
-    readonly property real scaleMinutes: Math.max(goalMinutes * 1.25, 1, ...days.map(d => d.minutes))
+    readonly property real scaleMinutes: Math.max(goalMinutes * 1.25, 1, todayMinutes, ...days.map(d => d.minutes))
 
     implicitHeight: barsHeight + Kirigami.Units.gridUnit * 1.5
 
@@ -37,8 +39,9 @@ Item {
 
                 required property var modelData
                 required property int index
-                readonly property bool met: chart.goalMinutes > 0 && modelData.minutes >= chart.goalMinutes
                 readonly property bool isToday: index === chart.days.length - 1
+                readonly property real minutes: isToday ? chart.todayMinutes : modelData.minutes
+                readonly property bool met: chart.goalMinutes > 0 && minutes >= chart.goalMinutes
 
                 // Equal shares: without a common preferred width the columns follow their
                 // labels, and a wide day name gets a wider bar.
@@ -55,9 +58,9 @@ Item {
                         anchors.horizontalCenter: parent.horizontalCenter
                         width: Math.max(4, parent.width * 0.6)
                         // A sliver for an empty day, so the day still reads as part of the row.
-                        height: Math.max(2, Math.round(chart.barsHeight * day.modelData.minutes / chart.scaleMinutes))
+                        height: Math.max(2, Math.round(chart.barsHeight * day.minutes / chart.scaleMinutes))
                         radius: Math.min(3, width / 4)
-                        color: day.modelData.minutes <= 0 ? chart.trackColor
+                        color: day.minutes <= 0 ? chart.trackColor
                             : day.met ? chart.barColor : Qt.alpha(chart.barColor, 0.45)
                     }
 
@@ -70,7 +73,7 @@ Item {
 
                     PlasmaComponents.ToolTip {
                         visible: hover.containsMouse
-                        text: Qt.formatDate(day.modelData.date, "dddd") + ": " + Math.round(day.modelData.minutes) + " min"
+                        text: Qt.formatDate(day.modelData.date, "dddd") + ": " + Math.round(day.minutes) + " min"
                     }
                 }
 

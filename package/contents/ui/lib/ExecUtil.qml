@@ -24,13 +24,10 @@ Plasma5Support.DataSource {
             cmd = cmd.join(' ');
         }
         if (typeof callback === 'function') {
-            if (listeners[cmd]) {
-                // Our implementation only allows 1 callback per command.
-                exited.disconnect(listeners[cmd]);
-                delete listeners[cmd];
-            }
-            var listener = execCallback.bind(executable, callback);
-            listeners[cmd] = listener;
+            // One callback per command: a second exec of a command still running replaces
+            // the first. Listeners are called from onNewData, never connected to `exited`,
+            // so there is nothing to disconnect.
+            listeners[cmd] = execCallback.bind(executable, callback);
         }
         connectSource(cmd);
     }

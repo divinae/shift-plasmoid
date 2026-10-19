@@ -235,4 +235,33 @@ TestCase {
         compare(days[6].minutes, 30);
         compare(days[3].minutes, 0);
     }
+
+    function test_countsStanding() {
+        var s = Cycle.fresh("stand");
+        verify(Cycle.countsStanding(s, 0, false));
+        verify(!Cycle.countsStanding(s, 0, true));
+        verify(!Cycle.countsStanding(Cycle.fresh("sit"), 0, false));
+        verify(!Cycle.countsStanding(Cycle.leave(s, 1000), 2000, false));
+        verify(Cycle.countsStanding(Cycle.pause(s, 0, 30), min, false));
+        verify(!Cycle.countsStanding(Cycle.pause(s, 0, 0), min, false));
+    }
+
+    function test_startDayClearsTheCount() {
+        var s = run(Cycle.fresh("sit"), 0, 50 * min);
+        compare(Cycle.status(s, 50 * min), "due");
+        s = Cycle.pause(s, 50 * min, 0);
+        var next = Cycle.startDay(s);
+        compare(next.elapsedMs, 0);
+        compare(next.dueSinceMs, 0);
+        compare(next.position, "sit");
+        compare(Cycle.status(next, 51 * min), "paused");
+    }
+
+    function test_parseDayKey() {
+        var d = Cycle.parseDayKey("2026-10-19");
+        compare(d.getFullYear(), 2026);
+        compare(d.getMonth(), 9);
+        compare(d.getDate(), 19);
+        compare(Cycle.dayKey(d), "2026-10-19");
+    }
 }

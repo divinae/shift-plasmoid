@@ -113,6 +113,24 @@ function isPaused(state, nowMs) {
     return state.pausedUntilMs === UNTIL_RESUMED || nowMs < state.pausedUntilMs;
 }
 
+// Whether time at the desk counts toward the standing stats. Outside working hours and
+// during an open-ended pause it does not: a desk left raised overnight is not the user
+// standing. A pause with an end is a meeting, and standing through it is real.
+function countsStanding(state, nowMs, offHours) {
+    if (state.position !== "stand" || state.awaySinceMs || offHours)
+        return false;
+    return state.pausedUntilMs !== UNTIL_RESUMED;
+}
+
+// The working day begins: yesterday's count, or a switch left due overnight, should not
+// remind anyone at 9:00 sharp. The position and any pause carry over.
+function startDay(state) {
+    var next = fresh(state.position);
+    next.awaySinceMs = state.awaySinceMs;
+    next.pausedUntilMs = state.pausedUntilMs || 0;
+    return next;
+}
+
 function leave(state, nowMs) {
     var next = copy(state);
     if (!next.awaySinceMs)
@@ -216,6 +234,12 @@ function dayKey(date) {
     var m = date.getMonth() + 1;
     var d = date.getDate();
     return date.getFullYear() + "-" + (m < 10 ? "0" : "") + m + "-" + (d < 10 ? "0" : "") + d;
+}
+
+// The inverse of dayKey: local midnight of that day.
+function parseDayKey(key) {
+    var parts = ("" + key).split("-");
+    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
 }
 
 function parseHistory(text) {
