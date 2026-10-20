@@ -40,6 +40,9 @@ Item {
     property int stalls: 0
     property string lastMoveError: ""
     property bool cancelled: false
+    // False after a height read failed: the desk is off, out of range or asleep. The
+    // applet then records the position by hand, and the next good read sets this back.
+    property bool reachable: true
     // A move asked for while a height read was still talking to the desk. It starts once
     // the read is done: two connections at once can fail, and the read-back after the move
     // would otherwise reuse the command still in flight.
@@ -61,9 +64,11 @@ Item {
                 console.log("Stand: height read took", Date.now() - started, "ms:", ("" + stdout).trim());
             var cm = DeskLogic.parseHeightCm(stdout);
             if (exitCode !== 0 || isNaN(cm)) {
+                desk.reachable = false;
                 desk.failed("height", desk.detail(exitCode, stdout, stderr));
                 done(NaN);
             } else {
+                desk.reachable = true;
                 desk.heightCm = cm;
                 desk.heightRead(cm);
                 done(cm);
@@ -143,8 +148,9 @@ Item {
             return;
         }
         if (isNaN(cm)) {
-            // The read already reported its failure.
+            // The desk did not answer after the move, so whether it moved is unknown.
             finish();
+            failed("move", lastMoveError || i18n("The desk did not answer."));
             return;
         }
         var next = DeskLogic.afterMove(targetCm, cm, heightBeforeCm, attempt, stalls, {

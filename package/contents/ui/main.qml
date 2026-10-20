@@ -55,8 +55,7 @@ PlasmoidItem {
     // The last week for the chart. Today's bar takes the live todayMinutes separately, so
     // the chart's delegates are not rebuilt every second.
     readonly property var weekDays: Cycle.lastDays(history, Cycle.parseDayKey(todayKey), 7)
-    // Read failures in a row; only the first is worth a notification.
-    property int deskReadFailures: 0
+
     property real lastNotifiedMs: 0
     // While a switch is due and ignored, ask again this often.
     readonly property real renotifyMs: 10 * 60 * 1000
@@ -144,8 +143,10 @@ PlasmoidItem {
 
     // The user asked to be in `position`. With a desk, the desk moves and its height,
     // read back afterwards, moves the cycle. Without one, the click is the record.
+    // A desk that does not answer is no reason to stop tracking: the click is the record
+    // then too, as if there were no desk.
     function goTo(position) {
-        if (deskEnabled)
+        if (deskEnabled && desk.reachable)
             desk.moveTo(position);
         else
             setPosition(position);
@@ -244,7 +245,7 @@ PlasmoidItem {
         }
         // Counted as the reminder, so a move that fails or leaves the desk where it was
         // is followed by the usual nagging rather than a switch due forever in silence.
-        if (deskEnabled && plasmoid.configuration.auto_move_enabled && desk.moveTo(Cycle.opposite(cycle.position))) {
+        if (deskEnabled && desk.reachable && plasmoid.configuration.auto_move_enabled && desk.moveTo(Cycle.opposite(cycle.position))) {
             lastNotifiedMs = Date.now();
             return;
         }
@@ -255,18 +256,22 @@ PlasmoidItem {
     // per run of failures, and only as a notification would: not with notifications off,
     // and not during Do Not Disturb. A failed move was asked for, so it always says so -
     // and when the switch is due, it is followed by the reminder the move stood in for.
+    // A desk out of reach is shown in the popup, not announced: the buttons fall back to
+    // recording the position, so nothing is lost. A move the user asked for that the desk
+    // never got is recorded as done - they will use the desk's own buttons. What still
+    // notifies is a desk that answers but will not go: stopped short by something in the
+    // way, or a command that does not exist.
     function reportDeskFailure(what, detail) {
         console.warn("Stand:", what, "failed:", detail);
-        if (what === "height") {
-            deskReadFailures += 1;
-            if (deskReadFailures > 1)
-                return;
+        if (what === "height")
+            return;
+        if (!desk.reachable) {
+            setPosition(desk.target);
+            return;
         }
         if (plasmoid.configuration.notification_enabled && !dndActive)
-            errorNotifications.notify(what === "move"
-                ? i18n("Could not move the desk: %1", detail)
-                : i18n("Could not read the desk height: %1", detail));
-        if (what === "move" && switchDue)
+            errorNotifications.notify(i18n("Could not move the desk: %1", detail));
+        if (switchDue)
             remind();
     }
 
@@ -373,7 +378,6 @@ PlasmoidItem {
         sitHeightCm: plasmoid.configuration.sit_height_cm
         standHeightCm: plasmoid.configuration.stand_height_cm
         onHeightRead: cm => {
-            root.deskReadFailures = 0;
             root.setPosition(Cycle.positionFromHeight(cm, sitHeightCm, standHeightCm));
         }
         onFailed: (what, detail) => root.reportDeskFailure(what, detail)
@@ -659,11 +663,20 @@ PlasmoidItem {
 
                 PlasmaComponents.Label {
                     Layout.fillWidth: true
-                    text: !desk.moving ? root.heightText()
+                    text: !desk.moving && !desk.reachable ? i18n("Desk not reachable. Sit and Stand record where you are.")
+                        : !desk.moving ? root.heightText()
                         : desk.attempt > 1 ? i18n("Desk stopped short, trying again (%1 of %2)…", desk.attempt, desk.maxAttempts)
                         : isNaN(desk.startCm) ? i18n("Desk moving…")
                         : i18n("Moving %1 → %2 cm…", Math.round(desk.startCm), Math.round(desk.targetCm))
                     wrapMode: Text.Wrap
+                }
+
+                PlasmaComponents.Button {
+                    visible: !desk.reachable && !desk.moving
+                    enabled: !desk.reading
+                    icon.name: "view-refresh"
+                    text: i18n("Try again")
+                    onClicked: desk.readHeight()
                 }
 
                 PlasmaComponents.Button {
