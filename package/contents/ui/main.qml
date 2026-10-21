@@ -409,7 +409,17 @@ PlasmoidItem {
 
         clip: true
         hoverEnabled: true
-        onClicked: root.expanded = !root.expanded
+        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+        // Middle click switches to the other position without opening the popup: the desk
+        // moves, or without one the switch is recorded.
+        onClicked: mouse => {
+            if (mouse.button === Qt.MiddleButton) {
+                if (!desk.moving)
+                    root.goTo(Cycle.opposite(root.cycle.position));
+                return;
+            }
+            root.expanded = !root.expanded;
+        }
 
         ProgressCircle {
             anchors.centerIn: parent

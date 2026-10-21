@@ -16,6 +16,8 @@ motorized desk for you.
 - **Pause** for a meeting (30 min, 1 h, 2 h or until resumed), and optional working hours
   outside which the cycle stops.
 - Reminders wait while Do Not Disturb is on, and show once it ends.
+- Middle-click the panel icon to switch between sitting and standing without opening the
+  popup.
 
 ## Install
 
