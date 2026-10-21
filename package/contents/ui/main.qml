@@ -67,7 +67,6 @@ PlasmoidItem {
     readonly property color themeDimColor: paletteReady ? Kirigami.Theme.disabledTextColor : "transparent"
     readonly property color themeAccentColor: paletteReady ? Kirigami.Theme.highlightColor : "transparent"
     readonly property color themeDueColor: paletteReady ? Kirigami.Theme.neutralTextColor : "transparent"
-    readonly property color themeOnDueColor: paletteReady ? Kirigami.Theme.highlightedTextColor : "transparent"
     readonly property color themeTrackColor: Qt.alpha(themeTextColor, 0.25)
     readonly property color ringColor: switchDue ? themeDueColor : themeAccentColor
     // The panel is translucent, and the accent blue measured 1.18:1 against it, so the
@@ -83,10 +82,10 @@ PlasmoidItem {
         return cycle.position === "stand" ? "com.dv.stand-stand" : "com.dv.stand-sit";
     }
 
-    // The posture now. Where to go next is the badge's job.
+    // The posture now. Once a switch is due, the panel shows where to go instead.
     readonly property url postureIcon: Qt.resolvedUrl(cycle.position === "stand" ? "../icons/person-stand.svg" : "../icons/person-sit.svg")
-    readonly property string nextArrow: cycle.position === "stand" ? "arrow-down" : "arrow-up"
-    readonly property bool showNextBadge: switchDue || status === "snoozed"
+    readonly property url nextArrowIcon: Qt.resolvedUrl("../icons/arrow-next.svg")
+    readonly property bool showNextArrow: switchDue || status === "snoozed"
 
     function statusText() {
         switch (status) {
@@ -443,33 +442,14 @@ PlasmoidItem {
             // the ring, so centring lands on whole pixels instead of blurring by half of one.
             width: Math.round(compact.size * 0.3) * 2
             height: width
-            source: root.postureIcon
+            // A switch due swaps the figure for the way to go, at full size: a corner badge on
+            // a 22px icon was a few pixels of arrow, and covered half the figure besides.
+            source: root.showNextArrow ? root.nextArrowIcon : root.postureIcon
+            rotation: root.showNextArrow && root.cycle.position === "stand" ? 180 : 0
             isMask: true
             color: root.themeTextColor
             opacity: root.idle ? 0.5 : 1
             active: compact.containsMouse
-        }
-
-        // Where to go next, once it is time to.
-        Rectangle {
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.rightMargin: (compact.width - compact.size) / 2
-            anchors.bottomMargin: (compact.height - compact.size) / 2
-            width: Math.max(8, Math.round(compact.size * 0.42))
-            height: width
-            radius: width / 2
-            color: root.themeDueColor
-            visible: root.showNextBadge
-
-            Kirigami.Icon {
-                anchors.centerIn: parent
-                width: parent.width * 0.8
-                height: width
-                source: root.nextArrow
-                isMask: true
-                color: root.themeOnDueColor
-            }
         }
     }
 
