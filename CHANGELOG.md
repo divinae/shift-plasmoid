@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.1.0 — 2026-10-21
+
+A desk that does not answer no longer gets in the way, and the panel says more plainly when
+it is time to switch.
+
+**Working without the desk** when it is off, out of range or asleep. A height read that
+fails no longer raises an error. The popup says the desk is not reachable, and until it
+answers again, Sit and Stand record where you are as if there were no desk: a move the desk
+never got counts as done, on the assumption you used its own buttons. **Try again** checks
+at once, and the minute-by-minute read switches back on its own. A desk that answers but
+stops short of the preset still notifies, since something may be in its way.
+
+**A clear arrow when a switch is due.** The panel used to show a small amber badge with a
+thin arrow in the corner, hard to make out at panel size and covering half the figure. Now
+the figure gives way to a thick arrow, up or down, inside the amber ring.
+
+**Middle-click the panel icon** to switch between sitting and standing without opening the
+popup.
+
+### Fixed
+
+- A desk move that stops short is retried after half a second instead of three. Each
+  idasen command already spends about six seconds connecting over Bluetooth, so a retry
+  still takes a few seconds before the desk moves again.
+
 ## 1.0.0 — 2026-10-19
 
 The first release. Stand is a Plasma 6 widget that keeps you switching between sitting and
