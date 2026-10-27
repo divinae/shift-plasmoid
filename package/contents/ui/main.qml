@@ -67,7 +67,6 @@ PlasmoidItem {
     readonly property color themeDimColor: paletteReady ? Kirigami.Theme.disabledTextColor : "transparent"
     readonly property color themeAccentColor: paletteReady ? Kirigami.Theme.highlightColor : "transparent"
     readonly property color themeDueColor: paletteReady ? Kirigami.Theme.neutralTextColor : "transparent"
-    readonly property color themeBackgroundColor: paletteReady ? Kirigami.Theme.backgroundColor : "transparent"
     readonly property color themeTrackColor: Qt.alpha(themeTextColor, 0.25)
     readonly property color ringColor: switchDue ? themeDueColor : themeAccentColor
     // The panel is translucent, and the accent blue measured 1.18:1 against it, so the
@@ -482,44 +481,18 @@ PlasmoidItem {
             // the ring, so centring lands on whole pixels instead of blurring by half of one.
             width: Math.round(compact.size * 0.3) * 2
             height: width
-            // A switch due swaps the figure for the way to go, at full size: a corner badge on
-            // a 22px icon was a few pixels of arrow, and covered half the figure besides.
-            source: root.showNextArrow ? root.nextArrowIcon : root.postureIcon
+            // What matters most takes the middle, at full size: where to go when a switch is
+            // due, else a desk out of reach, else the posture. A corner badge on a 22px icon was
+            // a few unreadable pixels, and still covered half the figure.
+            source: root.showNextArrow ? root.nextArrowIcon
+                : root.deskOffline ? "network-disconnect-symbolic"
+                : root.postureIcon
             rotation: root.showNextArrow && root.cycle.position === "stand" ? 180 : 0
-            isMask: true
+            // Breeze's plug keeps its own red mark; the arrow and the figures take the text colour.
+            isMask: root.showNextArrow || !root.deskOffline
             color: root.themeTextColor
             opacity: root.idle ? 0.5 : 1
             active: compact.containsMouse
-        }
-
-        // The desk is out of reach: Sit and Stand only record, and switches wait for a Done.
-        // Breeze's unplugged plug, the one disconnect icon that still reads at this size (the
-        // Bluetooth ones are drawn faded on purpose), on a disc of the background colour so it
-        // does not run into the ring. Bottom right, and pushed out into whatever room the
-        // panel leaves beside the ring, so it covers as little of the figure as it can: at
-        // 12px in the ring's corner it hid the figure's legs and seat.
-        Rectangle {
-            readonly property real spareX: (compact.width - compact.size) / 2
-            readonly property real spareY: (compact.height - compact.size) / 2
-
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.rightMargin: spareX - Math.min(6, spareX)
-            anchors.bottomMargin: spareY - Math.min(2, spareY)
-            width: offlineIcon.width + 2
-            height: width
-            radius: width / 2
-            color: root.themeBackgroundColor
-            visible: root.deskOffline
-
-            Kirigami.Icon {
-                id: offlineIcon
-
-                anchors.centerIn: parent
-                width: Math.max(8, Math.round(compact.size * 0.23) * 2)
-                height: width
-                source: "network-disconnect-symbolic"
-            }
         }
     }
 
