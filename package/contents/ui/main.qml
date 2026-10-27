@@ -481,18 +481,29 @@ PlasmoidItem {
             // the ring, so centring lands on whole pixels instead of blurring by half of one.
             width: Math.round(compact.size * 0.3) * 2
             height: width
-            // What matters most takes the middle, at full size: where to go when a switch is
-            // due, else a desk out of reach, else the posture. A corner badge on a 22px icon was
-            // a few unreadable pixels, and still covered half the figure.
-            source: root.showNextArrow ? root.nextArrowIcon
-                : root.deskOffline ? "network-disconnect-symbolic"
-                : root.postureIcon
+            // A switch due swaps the figure for the way to go, at full size: a corner badge on
+            // a 22px icon was a few pixels of arrow, and covered half the figure besides.
+            source: root.showNextArrow ? root.nextArrowIcon : root.postureIcon
             rotation: root.showNextArrow && root.cycle.position === "stand" ? 180 : 0
-            // Breeze's plug keeps its own red mark; the arrow and the figures take the text colour.
-            isMask: root.showNextArrow || !root.deskOffline
+            isMask: true
             color: root.themeTextColor
             opacity: root.idle ? 0.5 : 1
             active: compact.containsMouse
+        }
+
+        // The desk is out of reach: Sit and Stand only record, and switches wait for a Done.
+        // Breeze's unplugged plug, the one disconnect icon that still reads this small (the
+        // Bluetooth ones are drawn faded on purpose), with no backing: it sits in the ring's
+        // bottom corner and keeps its own red mark.
+        Kirigami.Icon {
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.rightMargin: (compact.width - compact.size) / 2
+            anchors.bottomMargin: (compact.height - compact.size) / 2
+            width: Math.max(8, Math.round(compact.size * 0.23) * 2)
+            height: width
+            source: "network-disconnect-symbolic"
+            visible: root.deskOffline
         }
     }
 
