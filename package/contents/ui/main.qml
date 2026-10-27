@@ -495,15 +495,17 @@ PlasmoidItem {
         // The desk is out of reach: Sit and Stand only record, and switches wait for a Done.
         // Breeze's unplugged plug, the one disconnect icon that still reads at this size (the
         // Bluetooth ones are drawn faded on purpose), on a disc of the background colour so it
-        // does not run into the ring. Bottom right, nudged out where the panel leaves room.
+        // does not run into the ring. Bottom right, and pushed out into whatever room the
+        // panel leaves beside the ring, so it covers as little of the figure as it can: at
+        // 12px in the ring's corner it hid the figure's legs and seat.
         Rectangle {
             readonly property real spareX: (compact.width - compact.size) / 2
             readonly property real spareY: (compact.height - compact.size) / 2
 
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            anchors.rightMargin: spareX - Math.min(3, spareX)
-            anchors.bottomMargin: spareY - Math.min(3, spareY)
+            anchors.rightMargin: spareX - Math.min(6, spareX)
+            anchors.bottomMargin: spareY - Math.min(2, spareY)
             width: offlineIcon.width + 2
             height: width
             radius: width / 2
@@ -514,7 +516,7 @@ PlasmoidItem {
                 id: offlineIcon
 
                 anchors.centerIn: parent
-                width: Math.max(10, Math.round(compact.size * 0.27) * 2)
+                width: Math.max(8, Math.round(compact.size * 0.23) * 2)
                 height: width
                 source: "network-disconnect-symbolic"
             }
