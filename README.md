@@ -67,6 +67,12 @@ command may print the height in metres, centimetres or millimetres.
 The widget reads the height every minute, so moving the desk with its own buttons is
 noticed too and the standing time stays right.
 
+When the desk does not answer (off, out of range, asleep), the panel icon shows a warning
+triangle and nothing raises an error. A switch you ask for then waits until you have made
+it with the desk's own buttons and press **Done** (in the notification, in the popup, or
+with another middle click); until then the count stays in the old position. The next
+successful height read switches back to driving the desk.
+
 A move that stops short of the preset (Linak desks do this now and then) is run again,
 up to 8 times. Two moves in a row that do not move the desk at all end the retries:
 something may be in the way, and the desk stopping is its anti-collision at work.
@@ -101,6 +107,10 @@ XDG_DATA_HOME=/tmp/stand-test plasmawindowed com.dv.stand
 ```
 
 QML errors show up in `journalctl --user -f`.
+
+The README screenshots come from `tools/screenshot/shoot.sh STATE OUT.png` (`sit`, `due` or
+`stand`, optionally with `-offline`). It runs the widget alone in a headless KWin with sample
+data, so nothing else on the desktop ends up in the picture.
 
 Several parts are taken from Fokus: `ExecUtil.qml`, `NotificationManager.qml`, `Sfx.qml`,
 `ProgressCircle.qml`, `FormPathDelegate.qml`, the Makefile and the audits in `tests/`.

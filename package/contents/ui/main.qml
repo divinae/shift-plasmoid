@@ -85,7 +85,11 @@ PlasmoidItem {
     // The posture now. Once a switch is due, the panel shows where to go instead.
     readonly property url postureIcon: Qt.resolvedUrl(cycle.position === "stand" ? "../icons/person-stand.svg" : "../icons/person-sit.svg")
     readonly property url nextArrowIcon: Qt.resolvedUrl("../icons/arrow-next.svg")
-    readonly property bool showNextArrow: switchDue || status === "snoozed"
+    // A switch asked for while the desk was out of reach: the user has to make it with the
+    // desk's own buttons, so the count carries on in the old position until they confirm.
+    property string pendingPosition: ""
+    readonly property bool deskOffline: deskEnabled && !desk.reachable
+    readonly property bool showNextArrow: switchDue || status === "snoozed" || pendingPosition !== ""
 
     function statusText() {
         switch (status) {
@@ -142,16 +146,45 @@ PlasmoidItem {
 
     // The user asked to be in `position`. With a desk, the desk moves and its height,
     // read back afterwards, moves the cycle. Without one, the click is the record.
-    // A desk that does not answer is no reason to stop tracking: the click is the record
-    // then too, as if there were no desk.
+    // A desk that does not answer cannot be the record, and neither can the request: the
+    // switch waits for the user to say they made it.
     function goTo(position) {
-        if (deskEnabled && desk.reachable)
+        if (!deskEnabled)
+            setPosition(position);
+        else if (desk.reachable)
             desk.moveTo(position);
         else
-            setPosition(position);
+            awaitManualSwitch(position);
+    }
+
+    function awaitManualSwitch(position) {
+        if (position === cycle.position) {
+            pendingPosition = "";
+            return;
+        }
+        pendingPosition = position;
+        if (!plasmoid.configuration.notification_enabled)
+            return;
+        notifications.notifyActions(position === "stand"
+            ? i18n("The desk is not reachable. Raise it with its own buttons, then press Done.")
+            : i18n("The desk is not reachable. Lower it with its own buttons, then press Done."), [
+            { label: i18n("Done"), action: root.confirmPending },
+            { label: i18n("Cancel"), action: root.cancelPending }
+        ]);
+    }
+
+    function confirmPending() {
+        if (pendingPosition)
+            setPosition(pendingPosition);
+        pendingPosition = "";
+    }
+
+    function cancelPending() {
+        pendingPosition = "";
     }
 
     function setPosition(position) {
+        pendingPosition = "";
         if (position === cycle.position)
             return;
         flushStanding();
@@ -198,7 +231,8 @@ PlasmoidItem {
             unsavedStandMs += dt;
         cycle = Cycle.advance(cycle, now, dt, cfg);
         nowMs = now;
-        if (switchDue && lastNotifiedMs && now - lastNotifiedMs >= renotifyMs)
+        // Not while a switch is waiting for its Done: the user is already on it.
+        if (switchDue && !pendingPosition && lastNotifiedMs && now - lastNotifiedMs >= renotifyMs)
             remind();
     }
 
@@ -255,17 +289,16 @@ PlasmoidItem {
     // per run of failures, and only as a notification would: not with notifications off,
     // and not during Do Not Disturb. A failed move was asked for, so it always says so -
     // and when the switch is due, it is followed by the reminder the move stood in for.
-    // A desk out of reach is shown in the popup, not announced: the buttons fall back to
-    // recording the position, so nothing is lost. A move the user asked for that the desk
-    // never got is recorded as done - they will use the desk's own buttons. What still
-    // notifies is a desk that answers but will not go: stopped short by something in the
-    // way, or a command that does not exist.
+    // A desk out of reach is shown on the panel and in the popup, not announced as an
+    // error. A move the desk never got waits for the user to make it by hand and confirm.
+    // What still notifies is a desk that answers but will not go: stopped short by
+    // something in the way, or a command that does not exist.
     function reportDeskFailure(what, detail) {
         console.warn("Stand:", what, "failed:", detail);
         if (what === "height")
             return;
         if (!desk.reachable) {
-            setPosition(desk.target);
+            awaitManualSwitch(desk.target);
             return;
         }
         if (plasmoid.configuration.notification_enabled && !dndActive)
@@ -286,6 +319,10 @@ PlasmoidItem {
     Plasmoid.icon: iconName
     toolTipMainText: statusText()
     toolTipSubText: countdownText() + "\n" + todayText()
+        + (pendingPosition ? "\n" + (pendingPosition === "stand"
+            ? i18n("Waiting for you to confirm you are standing")
+            : i18n("Waiting for you to confirm you are sitting")) : "")
+        + (deskOffline ? "\n" + i18n("Desk not reachable") : "")
 
     Component.onCompleted: {
         // A pass later, so nothing reads the theme while the shell is still attaching
@@ -376,9 +413,8 @@ PlasmoidItem {
         heightCmd: plasmoid.configuration.desk_height_cmd
         sitHeightCm: plasmoid.configuration.sit_height_cm
         standHeightCm: plasmoid.configuration.stand_height_cm
-        onHeightRead: cm => {
-            root.setPosition(Cycle.positionFromHeight(cm, sitHeightCm, standHeightCm));
-        }
+        // The height is the truth, so it settles any switch still waiting for a Done.
+        onHeightRead: cm => root.setPosition(Cycle.positionFromHeight(cm, sitHeightCm, standHeightCm))
         onFailed: (what, detail) => root.reportDeskFailure(what, detail)
     }
 
@@ -413,7 +449,10 @@ PlasmoidItem {
         // moves, or without one the switch is recorded.
         onClicked: mouse => {
             if (mouse.button === Qt.MiddleButton) {
-                if (!desk.moving)
+                // With a switch waiting for its Done, a second middle click is the Done.
+                if (root.pendingPosition)
+                    root.confirmPending();
+                else if (!desk.moving)
                     root.goTo(Cycle.opposite(root.cycle.position));
                 return;
             }
@@ -450,6 +489,18 @@ PlasmoidItem {
             color: root.themeTextColor
             opacity: root.idle ? 0.5 : 1
             active: compact.containsMouse
+        }
+
+        // The desk is out of reach: Sit and Stand only record, and switches wait for a Done.
+        Kirigami.Icon {
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.rightMargin: (compact.width - compact.size) / 2
+            anchors.topMargin: (compact.height - compact.size) / 2
+            width: Math.max(8, Math.round(compact.size * 0.22) * 2)
+            height: width
+            source: "dialog-warning"
+            visible: root.deskOffline
         }
     }
 
@@ -516,27 +567,50 @@ PlasmoidItem {
                 }
             }
 
+            Kirigami.InlineMessage {
+                Layout.fillWidth: true
+                visible: root.pendingPosition !== ""
+                type: Kirigami.MessageType.Information
+                text: root.pendingPosition === "stand"
+                    ? i18n("The desk is not reachable. Raise it with its own buttons, then confirm.")
+                    : i18n("The desk is not reachable. Lower it with its own buttons, then confirm.")
+                actions: [
+                    Kirigami.Action {
+                        text: i18n("Done")
+                        icon.name: "dialog-ok"
+                        onTriggered: root.confirmPending()
+                    },
+                    Kirigami.Action {
+                        text: i18n("Cancel")
+                        icon.name: "dialog-cancel"
+                        onTriggered: root.cancelPending()
+                    }
+                ]
+            }
+
             RowLayout {
                 Layout.fillWidth: true
 
+                // Offline, these say where the user is rather than ask the desk to go there,
+                // so a click on one is its own confirmation.
                 PlasmaComponents.Button {
                     Layout.fillWidth: true
                     icon.source: Qt.resolvedUrl("../icons/person-sit.svg")
                     icon.color: root.themeTextColor
-                    text: i18n("Sit")
+                    text: root.deskOffline ? i18n("I'm sitting") : i18n("Sit")
                     highlighted: root.cycle.position === "sit"
                     enabled: !desk.moving
-                    onClicked: root.goTo("sit")
+                    onClicked: root.deskOffline ? root.setPosition("sit") : root.goTo("sit")
                 }
 
                 PlasmaComponents.Button {
                     Layout.fillWidth: true
                     icon.source: Qt.resolvedUrl("../icons/person-stand.svg")
                     icon.color: root.themeTextColor
-                    text: i18n("Stand")
+                    text: root.deskOffline ? i18n("I'm standing") : i18n("Stand")
                     highlighted: root.cycle.position === "stand"
                     enabled: !desk.moving
-                    onClicked: root.goTo("stand")
+                    onClicked: root.deskOffline ? root.setPosition("stand") : root.goTo("stand")
                 }
             }
 
@@ -653,7 +727,7 @@ PlasmoidItem {
 
                 PlasmaComponents.Label {
                     Layout.fillWidth: true
-                    text: !desk.moving && !desk.reachable ? i18n("Desk not reachable. Sit and Stand record where you are.")
+                    text: !desk.moving && !desk.reachable ? i18n("Desk not reachable. Switches wait for you to confirm them.")
                         : !desk.moving ? root.heightText()
                         : desk.attempt > 1 ? i18n("Desk stopped short, trying again (%1 of %2)…", desk.attempt, desk.maxAttempts)
                         : isNaN(desk.startCm) ? i18n("Desk moving…")
