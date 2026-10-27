@@ -67,6 +67,7 @@ PlasmoidItem {
     readonly property color themeDimColor: paletteReady ? Kirigami.Theme.disabledTextColor : "transparent"
     readonly property color themeAccentColor: paletteReady ? Kirigami.Theme.highlightColor : "transparent"
     readonly property color themeDueColor: paletteReady ? Kirigami.Theme.neutralTextColor : "transparent"
+    readonly property color themeBackgroundColor: paletteReady ? Kirigami.Theme.backgroundColor : "transparent"
     readonly property color themeTrackColor: Qt.alpha(themeTextColor, 0.25)
     readonly property color ringColor: switchDue ? themeDueColor : themeAccentColor
     // The panel is translucent, and the accent blue measured 1.18:1 against it, so the
@@ -492,21 +493,31 @@ PlasmoidItem {
         }
 
         // The desk is out of reach: Sit and Stand only record, and switches wait for a Done.
-        // A Bluetooth rune on a red disc, in its own colours: Breeze's dialog-warning is a
-        // thin outline at this size and all but vanished against a light panel. Nudged out
-        // of the ring's corner where the panel leaves room, so it covers less of the figure.
-        Kirigami.Icon {
+        // Breeze's unplugged plug, the one disconnect icon that still reads at this size (the
+        // Bluetooth ones are drawn faded on purpose), on a disc of the background colour so it
+        // does not run into the ring. Bottom right, nudged out where the panel leaves room.
+        Rectangle {
             readonly property real spareX: (compact.width - compact.size) / 2
             readonly property real spareY: (compact.height - compact.size) / 2
 
             anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.rightMargin: spareX - Math.min(2, spareX)
-            anchors.topMargin: spareY - Math.min(2, spareY)
-            width: Math.max(10, Math.round(compact.size * 0.27) * 2)
+            anchors.bottom: parent.bottom
+            anchors.rightMargin: spareX - Math.min(3, spareX)
+            anchors.bottomMargin: spareY - Math.min(3, spareY)
+            width: offlineIcon.width + 2
             height: width
-            source: Qt.resolvedUrl("../icons/desk-offline.svg")
+            radius: width / 2
+            color: root.themeBackgroundColor
             visible: root.deskOffline
+
+            Kirigami.Icon {
+                id: offlineIcon
+
+                anchors.centerIn: parent
+                width: Math.max(10, Math.round(compact.size * 0.27) * 2)
+                height: width
+                source: "network-disconnect-symbolic"
+            }
         }
     }
 
