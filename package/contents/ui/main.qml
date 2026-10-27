@@ -67,6 +67,7 @@ PlasmoidItem {
     readonly property color themeDimColor: paletteReady ? Kirigami.Theme.disabledTextColor : "transparent"
     readonly property color themeAccentColor: paletteReady ? Kirigami.Theme.highlightColor : "transparent"
     readonly property color themeDueColor: paletteReady ? Kirigami.Theme.neutralTextColor : "transparent"
+    readonly property color themeNegativeColor: paletteReady ? Kirigami.Theme.negativeTextColor : "transparent"
     readonly property color themeTrackColor: Qt.alpha(themeTextColor, 0.25)
     readonly property color ringColor: switchDue ? themeDueColor : themeAccentColor
     // The panel is translucent, and the accent blue measured 1.18:1 against it, so the
@@ -492,14 +493,18 @@ PlasmoidItem {
         }
 
         // The desk is out of reach: Sit and Stand only record, and switches wait for a Done.
+        // A solid triangle with the "!" cut out: Breeze's dialog-warning is a thin outline at
+        // this size and all but vanished against a light panel.
         Kirigami.Icon {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.rightMargin: (compact.width - compact.size) / 2
             anchors.topMargin: (compact.height - compact.size) / 2
-            width: Math.max(8, Math.round(compact.size * 0.22) * 2)
+            width: Math.max(10, Math.round(compact.size * 0.25) * 2)
             height: width
-            source: "dialog-warning"
+            source: Qt.resolvedUrl("../icons/desk-offline.svg")
+            isMask: true
+            color: root.themeNegativeColor
             visible: root.deskOffline
         }
     }
@@ -511,6 +516,9 @@ PlasmoidItem {
         // around plasmawindowed - the rows stay together at the top instead of spreading.
         Layout.minimumHeight: content.implicitHeight + 2 * content.anchors.margins
         Layout.preferredHeight: content.implicitHeight + 2 * content.anchors.margins
+        // Also the most: Plasma reopens a popup at the size it last had, and one saved while
+        // the rows were spread out would come back with empty space below them.
+        Layout.maximumHeight: content.implicitHeight + 2 * content.anchors.margins
 
         ColumnLayout {
             id: content
