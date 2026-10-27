@@ -2,7 +2,6 @@ import "./lib"
 import "./lib/cycle.js" as Cycle
 import QtQml
 import QtQuick
-import QtQuick.Effects
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
@@ -68,6 +67,7 @@ PlasmoidItem {
     readonly property color themeDimColor: paletteReady ? Kirigami.Theme.disabledTextColor : "transparent"
     readonly property color themeAccentColor: paletteReady ? Kirigami.Theme.highlightColor : "transparent"
     readonly property color themeDueColor: paletteReady ? Kirigami.Theme.neutralTextColor : "transparent"
+    readonly property color themeBackgroundColor: paletteReady ? Kirigami.Theme.backgroundColor : "transparent"
     readonly property color themeTrackColor: Qt.alpha(themeTextColor, 0.25)
     readonly property color ringColor: switchDue ? themeDueColor : themeAccentColor
     // The panel is translucent, and the accent blue measured 1.18:1 against it, so the
@@ -494,26 +494,37 @@ PlasmoidItem {
 
         // The desk is out of reach: Sit and Stand only record, and switches wait for a Done.
         // Breeze's unplugged plug, the one disconnect icon that still reads this small (the
-        // Bluetooth ones are drawn faded on purpose), with no backing: it sits in the ring's
-        // bottom corner and keeps its own red mark. A soft shadow lifts it off the ring and
-        // the figure it overlaps.
-        Kirigami.Icon {
+        // Bluetooth ones are drawn faded on purpose), in the ring's bottom corner. It overlaps
+        // the figure, so a 1px outline in the background colour cuts it out: a drop shadow
+        // at this size was a smudge that did not separate the two.
+        Item {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             anchors.rightMargin: (compact.width - compact.size) / 2
             anchors.bottomMargin: (compact.height - compact.size) / 2
             width: Math.max(10, Math.round(compact.size * 0.3) * 2)
             height: width
-            source: "network-disconnect-symbolic"
             visible: root.deskOffline
-            layer.enabled: visible
-            layer.effect: MultiEffect {
-                shadowEnabled: true
-                shadowColor: Qt.rgba(0, 0, 0, 0.6)
-                shadowBlur: 0.4
-                shadowHorizontalOffset: 0.5
-                shadowVerticalOffset: 1
-                autoPaddingEnabled: true
+
+            Repeater {
+                model: [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]]
+
+                Kirigami.Icon {
+                    required property var modelData
+
+                    x: modelData[0]
+                    y: modelData[1]
+                    width: parent.width
+                    height: parent.height
+                    source: "network-disconnect-symbolic"
+                    isMask: true
+                    color: root.themeBackgroundColor
+                }
+            }
+
+            Kirigami.Icon {
+                anchors.fill: parent
+                source: "network-disconnect-symbolic"
             }
         }
     }
