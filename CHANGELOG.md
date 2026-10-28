@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.2.0 — 2026-10-28
+
+A desk that does not answer is now plain to see, and a switch made by hand only counts
+once you say it is done.
+
+**Switches wait for your Done while the desk is out of reach.** In 1.1.0 a move the desk
+never got counted as made, on the assumption you used the desk's own buttons. Now it waits:
+the arrow shows in the ring, a notification asks you to raise or lower the desk by hand and
+press **Done**, and the time keeps counting in the old position until you do. Confirm with
+**Done** in the notification or the popup, or with another middle click on the panel icon.
+While the desk is out of reach, the popup's buttons read **I'm sitting** and **I'm
+standing**, and pressing one is the confirmation. The next height the desk reports settles
+any switch still waiting.
+
+**An unplugged plug on the panel icon** while the desk is out of reach, in the ring's bottom
+corner, outlined so it stands clear of the figure. The tooltip says so too.
+
+### Fixed
+
+- The popup could reopen with empty space below its contents, at a height Plasma had saved
+  before 1.1.0. It is now as tall as what it shows.
+
 ## 1.1.0 — 2026-10-21
 
 A desk that does not answer no longer gets in the way, and the panel says more plainly when

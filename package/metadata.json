@@ -11,7 +11,7 @@
         "Icon": "com.dv.stand",
         "Id": "com.dv.stand",
         "Name": "Stand",
-        "Version": "1.1.0",
+        "Version": "1.2.0",
         "License": "GPL-3.0-or-later",
         "Website": "https://gitlab.com/divinae/desk-plasmoid"
     },
