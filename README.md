@@ -37,8 +37,8 @@ Then add **Shift** to a panel or the desktop.
 
 Besides the widget, `make install` puts its icons in
 `~/.local/share/icons/hicolor/scalable/apps/`, because Plasma looks a widget's icon up by
-name. Installed from a `.plasmoid` file instead, the widget works but the tooltip and the
-widget list show no icon.
+name. Installed from a `.plasmoid` file instead, the widget works and Add Widgets shows its
+icon, but the tooltip shows none.
 
 ## Desk control
 
@@ -111,6 +111,9 @@ XDG_DATA_HOME=/tmp/stand-test plasmawindowed com.dv.stand
 ```
 
 QML errors show up in `journalctl --user -f`.
+
+The icon (`package/contents/screenshot.png`, which Add Widgets shows, and the store logo
+`screenshots/logo.png`) comes from `python3 tools/icon/make_icon.py`.
 
 The README screenshots come from `tools/screenshot/shoot.sh STATE OUT.png` (`sit`, `due` or
 `stand`, optionally with `-offline`). It runs the widget alone in a headless KWin with sample
