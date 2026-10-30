@@ -11,7 +11,7 @@
         "Icon": "com.dv.stand",
         "Id": "com.dv.stand",
         "Name": "Shift",
-        "Version": "1.2.2",
+        "Version": "1.2.3",
         "License": "GPL-3.0-or-later",
         "Website": "https://gitlab.com/divinae/shift-plasmoid"
     },

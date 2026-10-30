@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.3 — 2026-10-30
+
+The project moved to https://gitlab.com/divinae/shift-plasmoid, to go with the new name. The
+widget's website link points there now; the old address still redirects.
+
 ## 1.2.2 — 2026-10-30
 
 The same as 1.2.1, released again because the `v1.2.1` tag points at a commit from before
