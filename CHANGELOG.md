@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2.1 — 2026-10-30
+
+**Stand is now Shift.** With "Stand" as the title, a notification saying "Time to sit down"
+read like a contradiction. Only the name changes: the widget keeps its id, so it stays in
+your panel with its settings and history.
+
+### Fixed
+
+- Every notification showed an up arrow, including "Time to sit down". The icon now
+  follows the message: a down arrow for sitting down, an up arrow for standing up, and a
+  warning sign when the desk could not be moved.
+
 ## 1.2.0 — 2026-10-28
 
 A desk that does not answer is now plain to see, and a switch made by hand only counts
