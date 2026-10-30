@@ -8,6 +8,10 @@ motorized desk for you.
 | ![Sitting](screenshots/sitting.png) | ![Time to stand up](screenshots/due.png) | ![Standing](screenshots/standing.png) |
 | Sitting, with the week so far | A switch is due | Standing, with the desk raised |
 
+If Shift is useful to you, you can buy me a coffee on [Ko-fi](https://ko-fi.com/divinae4535).
+
+[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/divinae4535)
+
 - A sit/stand cycle with its own timer: 45 minutes sitting, 15 standing by default.
 - A notification when it is time to switch, with **Sit/Stand now** and **Snooze**.
 - Daily standing time against a goal, and a streak of days that met it.
@@ -119,6 +123,8 @@ Several parts are taken from Fokus: `ExecUtil.qml`, `NotificationManager.qml`, `
 
 If the widget is useful to you, you can buy me a coffee on
 [Ko-fi](https://ko-fi.com/divinae4535).
+
+[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/divinae4535)
 
 ## License
 
