@@ -171,7 +171,7 @@ PlasmoidItem {
             : i18n("The desk is not reachable. Lower it with its own buttons, then press Done."), [
             { label: i18n("Done"), action: root.confirmPending },
             { label: i18n("Cancel"), action: root.cancelPending }
-        ]);
+        ], position === "stand" ? "go-up" : "go-down");
     }
 
     function confirmPending() {
@@ -252,7 +252,7 @@ PlasmoidItem {
         notifications.notifyActions(standing ? i18n("Time to sit down.") : i18n("Time to stand up."), [
             { label: standing ? i18n("Sit now") : i18n("Stand now"), action: function() { root.goTo(target); } },
             { label: i18n("Snooze %1 min", plasmoid.configuration.snooze_minutes), action: root.snooze }
-        ]);
+        ], standing ? "go-down" : "go-up");
     }
 
     onSwitchDueChanged: {
@@ -303,7 +303,7 @@ PlasmoidItem {
             return;
         }
         if (plasmoid.configuration.notification_enabled && !dndActive)
-            errorNotifications.notify(i18n("Could not move the desk: %1", detail));
+            errorNotifications.notify(i18n("Could not move the desk: %1", detail), "", null, "dialog-warning");
         if (switchDue)
             remind();
     }

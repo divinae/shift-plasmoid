@@ -37,7 +37,9 @@ QtObject {
         componentName: "plasma_workspace"
         eventId: "notification"
         title: "Stand"
-        iconName: "go-up"
+        // Set per message by notifyActions; a fixed "go-up" put an up arrow on "Time to sit
+        // down".
+        iconName: "dialog-information"
         autoDelete: false
     }
 
@@ -47,14 +49,15 @@ QtObject {
     // Sound is deliberately not handled here. It used to be an argument, which meant
     // a sound could only play as part of a notification - turning the popup off
     // silenced it too. The caller now plays sound separately.
-    function notify(summary, actionLabel, action) {
-        notifyActions(summary, actionLabel ? [{ "label": actionLabel, "action": action }] : []);
+    function notify(summary, actionLabel, action, icon) {
+        notifyActions(summary, actionLabel ? [{ "label": actionLabel, "action": action }] : [], icon);
     }
 
     // The general form: a list of { label, action }, at most two of which are shown.
     // Anything past the second is dropped rather than silently reusing a slot, which
     // would attach the wrong callback to a button.
-    function notifyActions(summary, actions) {
+    // icon is a theme icon name; it should say the same as the summary.
+    function notifyActions(summary, actions, icon) {
         var list = actions || [];
         pendingAction = list.length > 0 ? (list[0].action || null) : null;
         pendingSecondaryAction = list.length > 1 ? (list[1].action || null) : null;
@@ -68,6 +71,7 @@ QtObject {
             buttons.push(secondaryAction);
         }
         note.actions = buttons;
+        note.iconName = icon || "dialog-information";
         note.text = summary;
         note.sendEvent();
     }
