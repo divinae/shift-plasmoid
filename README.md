@@ -1,4 +1,4 @@
-# Stand
+# Shift
 
 A Plasma 6 widget that reminds you to switch between sitting and standing, and can move a
 motorized desk for you.
@@ -29,7 +29,7 @@ make install     # first time
 make upgrade     # after changes
 ```
 
-Then add **Stand** to a panel or the desktop.
+Then add **Shift** to a panel or the desktop.
 
 Besides the widget, `make install` puts its icons in
 `~/.local/share/icons/hicolor/scalable/apps/`, because Plasma looks a widget's icon up by

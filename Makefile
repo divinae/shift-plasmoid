@@ -1,6 +1,6 @@
 PLUGIN_ID = com.dv.stand
 VERSION := $(shell python3 -c "import json; print(json.load(open('package/metadata.json'))['KPlugin']['Version'])")
-ARCHIVE = stand_v$(VERSION).plasmoid
+ARCHIVE = shift_v$(VERSION).plasmoid
 
 QMLLINT ?= /usr/lib/qt6/bin/qmllint
 QMLTESTRUNNER ?= /usr/lib/qt6/bin/qmltestrunner

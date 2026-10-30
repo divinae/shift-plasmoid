@@ -32,11 +32,11 @@ QtObject {
         // This applet ships no .notifyrc, and KNotification silently sends
         // nothing at all for a componentName it cannot resolve, so it borrows
         // the generic workspace event. The cost is that the notification is
-        // attributed to "System Notifications" rather than to Stand, which is
+        // attributed to "System Notifications" rather than to Shift, which is
         // why the title carries the name instead.
         componentName: "plasma_workspace"
         eventId: "notification"
-        title: "Stand"
+        title: "Shift"
         // Set per message by notifyActions; a fixed "go-up" put an up arrow on "Time to sit
         // down".
         iconName: "dialog-information"

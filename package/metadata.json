@@ -10,7 +10,7 @@
         "Description": "Sit/stand reminder that can drive a motorized desk",
         "Icon": "com.dv.stand",
         "Id": "com.dv.stand",
-        "Name": "Stand",
+        "Name": "Shift",
         "Version": "1.2.0",
         "License": "GPL-3.0-or-later",
         "Website": "https://gitlab.com/divinae/desk-plasmoid"
