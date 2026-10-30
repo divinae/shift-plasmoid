@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.2 — 2026-10-30
+
+The same as 1.2.1, released again because the `v1.2.1` tag points at a commit from before
+that version's number was set. Install this one.
+
 ## 1.2.1 — 2026-10-30
 
 **Stand is now Shift.** With "Stand" as the title, a notification saying "Time to sit down"

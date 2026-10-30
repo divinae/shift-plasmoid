@@ -22,7 +22,7 @@ motorized desk for you.
 ## Install
 
 Download the latest package from [releases/](releases/) and run
-`kpackagetool6 -t Plasma/Applet -i shift_v1.2.1.plasmoid`, or from the source:
+`kpackagetool6 -t Plasma/Applet -i shift_v1.2.2.plasmoid`, or from the source:
 
 ```sh
 make install     # first time
