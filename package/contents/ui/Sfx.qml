@@ -6,7 +6,7 @@ import QtQuick
 // Merely constructing a MediaPlayer makes QtMultimedia probe hardware video
 // decode. On a machine with the NVIDIA driver that loads libvdpau_nvidia.so,
 // which opens /dev/nvidia* and holds it, so the dGPU never reaches D3cold - the
-// applet kept the card awake just by sitting in the panel (gitlab #45).
+// applet kept the card awake just by sitting in the panel.
 //
 // Verified with a pair of minimal QML files: no MediaPlayer produces no VDPAU
 // probe at all, one constructed and never played produces it. So nothing here
