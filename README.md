@@ -1,29 +1,37 @@
-# Shift
+# Shift for Plasma 6
 
 [![KDE Store](https://img.shields.io/badge/KDE%20Store-Shift-1d99f3?logo=kde&logoColor=white)](https://store.kde.org/p/2379558/)
+[![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](#license)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-support-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/divinae4535)
 
-A Plasma 6 widget that reminds you to switch between sitting and standing, and can move a
-motorized desk for you.
+**Sit less, without thinking about it.** A Plasma 6 widget that reminds you to switch between
+sitting and standing, counts your standing time against a goal, and can move a motorized desk
+for you.
 
 | | | |
 | --- | --- | --- |
 | ![Sitting](screenshots/sitting.png) | ![Time to stand up](screenshots/due.png) | ![Standing](screenshots/standing.png) |
 | Sitting, with the week so far | A switch is due | Standing, with the desk raised |
 
-If Shift is useful to you, you can buy me a coffee on [Ko-fi](https://ko-fi.com/divinae4535).
+The screenshots use sample data, in a headless KWin (see [Development](#development)).
 
-[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/divinae4535)
+### Why you'll like it
 
-- A sit/stand cycle with its own timer: 45 minutes sitting, 15 standing by default.
-- A notification when it is time to switch, with **Sit/Stand now** and **Snooze**.
-- Daily standing time against a goal, and a streak of days that met it.
-- A week of standing time as a chart in the popup.
-- Paused while the screen is locked. Away 5 minutes or more starts the cycle over.
-- **Pause** for a meeting (30 min, 1 h, 2 h or until resumed), and optional working hours
-  outside which the cycle stops.
-- Reminders wait while Do Not Disturb is on, and show once it ends.
-- Middle-click the panel icon to switch between sitting and standing without opening the
-  popup.
+- ⏱️ **A cycle that runs itself.** 45 minutes sitting, 15 standing by default, on its own timer;
+  a notification when it's time to switch, with **Sit/Stand now** and **Snooze**.
+- 🖥️ **Moves the desk for you.** IKEA Idåsen and other Linak desks through
+  [idasen](https://github.com/newAM/idasen), or any command line tool; it notices when you use
+  the desk's own buttons too.
+- 📈 **Progress you can see.** Daily standing time against a goal, a streak of days that met it,
+  and the week as a chart in the popup.
+- 🤝 **Polite about your day.** Paused while the screen is locked, and away 5 minutes or more
+  starts the cycle over. **Pause** for a meeting (30 min, 1 h, 2 h or until resumed), optional
+  working hours, and reminders that wait for Do Not Disturb to end.
+- 🖱️ **One click away.** Middle-click the panel icon to switch between sitting and standing
+  without opening the popup.
+
+Using [Glance](https://github.com/divinae/glance-plasmoid)? Shift is built into it, together with
+a focus timer that it waits for (its settings aren't imported from this widget).
 
 ## Install
 
@@ -125,6 +133,10 @@ own can catch a chair arm, a cable or a shelf. Turn it on only if nothing can be
   until it exits, and idasen holds the desk's only Bluetooth connection while moving.
 - Standing time is credited to the day it is saved on, once a minute, so at most a minute
   of a session that spans midnight lands on the wrong day.
+
+## Support
+
+If Shift is useful to you, you can buy me a coffee on [Ko-fi](https://ko-fi.com/divinae4535).
 
 ## Bugs and ideas
 
