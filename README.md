@@ -25,12 +25,24 @@ If Shift is useful to you, you can buy me a coffee on [Ko-fi](https://ko-fi.com/
 
 ## Install
 
-Download the latest package from [releases/](releases/) and run
-`kpackagetool6 -t Plasma/Applet -i shift_v1.2.3.plasmoid`, or from the source:
+### From a release
+
+Download the latest `.plasmoid` file from [releases/](releases/), then:
 
 ```sh
+kpackagetool6 -t Plasma/Applet -i shift_v1.2.3.plasmoid
+# or, to upgrade an installed Shift:
+kpackagetool6 -t Plasma/Applet -u shift_v1.2.3.plasmoid
+```
+
+### From source
+
+```sh
+git clone https://github.com/divinae/shift-plasmoid.git
+cd shift-plasmoid
 make install     # first time
 make upgrade     # after changes
+make uninstall   # removes the widget and its icons
 ```
 
 Then add **Shift** to a panel or the desktop.
@@ -39,6 +51,19 @@ Besides the widget, `make install` puts its icons in
 `~/.local/share/icons/hicolor/scalable/apps/`, because Plasma looks a widget's icon up by
 name. Installed from a `.plasmoid` file instead, the widget works and Add Widgets shows its
 icon, but the tooltip shows none.
+
+## Dependencies
+
+- Plasma 6 (Qt 6 and KDE Frameworks 6)
+- KNotifications QML module (`org.kde.notification`; Debian/Ubuntu:
+  `qml6-module-org-kde-notification`, Arch: `knotifications`, Fedora: `kf6-knotifications`)
+- Kirigami Addons (settings pages)
+- Qt Multimedia (`qt6-multimedia`), for the notification sound
+
+Optional:
+
+- [idasen](https://github.com/newAM/idasen) or another command-line tool for the desk, see
+  below
 
 ## Desk control
 
@@ -93,6 +118,19 @@ own can catch a chair arm, a cable or a shelf. Turn it on only if nothing can be
   until it exits, and idasen holds the desk's only Bluetooth connection while moving.
 - Standing time is credited to the day it is saved on, once a minute, so at most a minute
   of a session that spans midnight lands on the wrong day.
+
+## Bugs and ideas
+
+Report them in [GitHub Issues](https://github.com/divinae/shift-plasmoid/issues): your
+distribution, the Plasma version, the widget version, your desk and the tool that drives it
+if desk control is on, and for a problem the widget's log. To get the log, do what goes wrong,
+then right after:
+
+```sh
+journalctl --user -b --since "-15min" | grep -i -E "stand|plasmashell" > shift.log
+```
+
+Look it over before attaching `shift.log`.
 
 ## Development
 
