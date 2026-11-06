@@ -122,13 +122,6 @@ data, so nothing else on the desktop ends up in the picture.
 Several parts are taken from Fokus: `ExecUtil.qml`, `NotificationManager.qml`, `Sfx.qml`,
 `ProgressCircle.qml`, `FormPathDelegate.qml`, the Makefile and the audits in `tests/`.
 
-## Support
-
-If the widget is useful to you, you can buy me a coffee on
-[Ko-fi](https://ko-fi.com/divinae4535).
-
-[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/divinae4535)
-
 ## License
 
 GPL-3.0-or-later, see `LICENSE`. Parts are taken from Fokus, which is under the same license.
