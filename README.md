@@ -1,5 +1,7 @@
 # Shift
 
+[![KDE Store](https://img.shields.io/badge/KDE%20Store-Shift-1d99f3?logo=kde&logoColor=white)](https://store.kde.org/p/2379558/)
+
 A Plasma 6 widget that reminds you to switch between sitting and standing, and can move a
 motorized desk for you.
 
@@ -24,6 +26,11 @@ If Shift is useful to you, you can buy me a coffee on [Ko-fi](https://ko-fi.com/
   popup.
 
 ## Install
+
+### From the KDE Store
+
+Right click the panel > Add or Manage Widgets > Get New Widgets > Download New Plasma Widgets,
+search for **Shift**, or get it from [store.kde.org](https://store.kde.org/p/2379558/).
 
 ### From a release
 
