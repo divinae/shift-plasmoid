@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+The project moved to https://github.com/divinae/shift-plasmoid. The widget's website link
+points there now.
+
 ## 1.2.3 — 2026-10-30
 
 The project moved to https://gitlab.com/divinae/shift-plasmoid, to go with the new name. The
