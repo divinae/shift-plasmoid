@@ -179,6 +179,10 @@ data, so nothing else on the desktop ends up in the picture.
 Several parts are taken from Fokus: `ExecUtil.qml`, `NotificationManager.qml`, `Sfx.qml`,
 `ProgressCircle.qml`, `FormPathDelegate.qml`, the Makefile and the audits in `tests/`.
 
+## AI assistance
+
+Made with AI: most of the code is written with Claude, Anthropic's AI assistant. I decide what goes in and review every change before a release.
+
 ## License
 
 GPL-3.0-or-later, see `LICENSE`. Parts are taken from Fokus, which is under the same license.

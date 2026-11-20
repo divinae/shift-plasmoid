@@ -58,6 +58,7 @@ Middle-click the panel icon to switch without opening the popup.
 Source, issues and the full README (desk setup included): https://github.com/divinae/shift-plasmoid
 
 Support: https://ko-fi.com/divinae4535
+Made with AI: most of the code is written with Claude, Anthropic's AI assistant. I decide what goes in and review every change before a release.
 ```
 
 **Changelog**
